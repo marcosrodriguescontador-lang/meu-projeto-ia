@@ -152,7 +152,9 @@ with aba_docs:
             if doc.lancamentos:
                 resumo.append(f"{len(doc.lancamentos)} lançamentos")
             for col, serie in doc.series.items():
-                resumo.append(f"{DESCRICAO_COLUNAS.get(col, col)}: {brl(sum(serie.values()))} em {len(serie)} mês(es)")
+                base = col.removesuffix("__anterior")
+                extra = " (meses anteriores)" if base != col else ""
+                resumo.append(f"{DESCRICAO_COLUNAS.get(base, base)}{extra}: {brl(sum(serie.values()))} em {len(serie)} mês(es)")
             if doc.contas:
                 resumo.append(f"{len(doc.contas)} contas de demonstrativo")
             st.caption(md(" · ".join(resumo)) if resumo else "Nenhum valor reconhecido.")

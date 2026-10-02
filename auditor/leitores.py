@@ -539,6 +539,11 @@ def _series_folha(texto: str, tabelas: list[pd.DataFrame], ano: int) -> dict[str
 
 
 def _series_fiscal(texto: str, tabelas: list[pd.DataFrame], ano: int) -> dict[str, dict[str, float]]:
+    from .layouts import pgdas_d
+
+    especifico = pgdas_d(texto)
+    if especifico:
+        return especifico
     series: dict[str, dict[str, float]] = defaultdict(dict)
     for comp, bloco in _blocos_por_competencia(texto):
         rec = valor_por_palavras(bloco, ["receita bruta do pa", "receita bruta auferida", "receita bruta", "total de receitas", "faturamento"])

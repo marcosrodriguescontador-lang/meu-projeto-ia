@@ -8,7 +8,10 @@ from dataclasses import dataclass, field
 import pandas as pd
 
 from .leitores import competencia, normalizar
+from .layouts import SUFIXO_ANTERIOR
 from .modelos import Documento, Lancamento, TipoDocumento, tabela_mensal_vazia
+
+COLUNAS_DECLARADAS = {"faturamento_declarado", "imposto_declarado"}
 
 # Entradas bancárias que normalmente NÃO são receita de vendas/serviços.
 PALAVRAS_NAO_OPERACIONAIS = [
@@ -59,11 +62,24 @@ def transferencias_entre_contas(extratos: list[Documento], tolerancia_dias: int 
 
 def consolidar(documentos: list[Documento], ano: int, cnpj_empresa: str = "") -> ResultadoConsolidacao:
     tabela = tabela_mensal_vazia(ano)
+    anteriores: dict[str, dict[str, float]] = defaultdict(dict)
     for doc in documentos:
         for coluna, serie in doc.series.items():
+            if coluna.endswith(SUFIXO_ANTERIOR):
+                # Valores "anteriores" de declarações (ex.: PGDAS-D) se repetem em várias
+                # declarações: guarda o último informado e só usa se o mês ficar vazio.
+                anteriores[coluna[: -len(SUFIXO_ANTERIOR)]].update(serie)
+                continue
             for comp, valor in serie.items():
                 if comp in tabela.index and coluna in tabela.columns:
-                    tabela.loc[comp, coluna] += valor
+                    if coluna in COLUNAS_DECLARADAS:
+                        tabela.loc[comp, coluna] = valor  # declaração retificadora substitui a anterior
+                    else:
+                        tabela.loc[comp, coluna] += valor
+    for coluna, serie in anteriores.items():
+        for comp, valor in serie.items():
+            if comp in tabela.index and coluna in tabela.columns and tabela.loc[comp, coluna] == 0:
+                tabela.loc[comp, coluna] = valor
 
     extratos = [d for d in documentos if d.tipo == TipoDocumento.EXTRATO_CC]
     pares = transferencias_entre_contas(extratos)

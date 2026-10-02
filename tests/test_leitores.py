@@ -62,3 +62,43 @@ def test_detectar_tipo_folha():
 def test_doc_antigo_gera_aviso():
     doc = ler_documento("arquivo.doc", b"xxx")
     assert any("DOCX" in a for a in doc.avisos)
+
+
+PGDAS_FICTICIO = """Programa Gerador do Documento de Arrecadação
+do Simples Nacional - Declaratório
+Período de Apuração: 01/01/2026 a 31/01/2026
+Receita Bruta do PA (RPA) - Competência 10.000,00 0,00 10.000,00
+2.2) Receitas Brutas Anteriores (R$)
+2.2.1) Mercado Interno
+01/2025 1.000,0002/2025 2.000,0003/2025 3.000,0004/2025 4.000,00
+2.2.2) Mercado Externo
+01/2025 0,0002/2025 500,00 03/2025 0,00 04/2025 0,00
+2.3) Folha de Salários Anteriores (R$)
+Nenhuma
+2.4) Fator r
+2.8) Total Geral da Empresa
+Total do Débito Declarado (exigível + suspenso) (R$)
+IRPJ CSLL COFINS PIS/Pasep INSS/CPP ICMS IPI ISS Total
+10,00 10,00 10,00 10,00 10,00 10,00 0,00 0,00 1.060,00
+Total do Débito com Exigibilidade Suspensa (R$)
+"""
+
+
+def test_pgdas_d():
+    from auditor.consolidacao import consolidar
+    from auditor.modelos import Documento
+
+    doc = Documento("PGDASD-DECLARACAO.pdf", TipoDocumento.FISCAL, texto=PGDAS_FICTICIO)
+    from auditor.leitores import extrair_dados
+
+    extrair_dados(doc, 2026)
+    assert doc.series["faturamento_declarado"] == {"2026-01": 10000.0}
+    assert doc.series["imposto_declarado"] == {"2026-01": 1060.0}
+    assert doc.series["faturamento_declarado__anterior"]["2025-02"] == 2500.0
+
+    tab = consolidar([doc], 2026).tabela
+    assert tab.loc["2025-02", "faturamento_declarado"] == 2500.0
+    assert tab.loc["2026-01", "faturamento_declarado"] == 10000.0
+    # Duas declarações com os mesmos meses anteriores não podem somar em dobro
+    tab2 = consolidar([doc, doc], 2026).tabela
+    assert tab2.loc["2025-02", "faturamento_declarado"] == 2500.0
