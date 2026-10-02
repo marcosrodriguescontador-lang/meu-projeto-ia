@@ -257,6 +257,13 @@ def _tabela_conciliacao(df: pd.DataFrame) -> Table:
                    alinhar_direita=[1, 2, 3, 4, 5, 6])
 
 
+def _tabela_indices(df: pd.DataFrame) -> Table:
+    dados = [["Grupo", "Índice", "Valor", "Fórmula"]]
+    for _, r in df.iterrows():
+        dados.append([r["Grupo"], r["Índice"], r["Valor"], r["Fórmula"]])
+    return _tabela(dados, [3.0 * cm, 5.4 * cm, 2.4 * cm, 6.2 * cm], alinhar_direita=[2])
+
+
 def _tabela_regimes(df: pd.DataFrame) -> Table:
     dados = [["Regime", "Tributos estimados (ano)", "% da receita", "Observação"]]
     for _, r in df.iterrows():
@@ -342,6 +349,8 @@ def relatorio_interno_pdf(d: DadosRelatorio) -> bytes:
         h += [_p("Faturamento x movimentação bancária", "h2"), _tabela_conciliacao(r.conciliacao_bancaria)]
     if r.comparativo_regimes is not None:
         h += [_p("Comparativo de regimes tributários (simulação)", "h2"), _tabela_regimes(r.comparativo_regimes)]
+    if r.indices is not None:
+        h += [CondPageBreak(6 * cm), _p("Índices econômico-financeiros", "h2"), _tabela_indices(r.indices)]
 
     h += [CondPageBreak(6 * cm), _p("5. Documentos analisados", "h1")]
     dados_docs = [["Arquivo", "Tipo", "Observações"]]
@@ -399,6 +408,10 @@ def relatorio_cliente_pdf(d: DadosRelatorio) -> bytes:
               _p("Simulação com base no faturamento e na folha do período, sem considerar ICMS/ISS e benefícios "
                  "específicos. Serve como indicativo; a mudança de regime exige estudo detalhado.", "pequeno"),
               Spacer(1, 4), _tabela_regimes(r.comparativo_regimes)]
+    if r.indices is not None:
+        h += [CondPageBreak(6 * cm), _p("Indicadores econômico-financeiros", "h2"),
+              _p("Calculados a partir do balanço patrimonial e da demonstração do resultado.", "pequeno"),
+              Spacer(1, 4), _tabela_indices(r.indices)]
     if r.simples_mensal is not None and len(r.simples_mensal):
         h += [CondPageBreak(6 * cm), _p("Evolução da alíquota do Simples Nacional", "h2"), _tabela_simples(r.simples_mensal)]
 

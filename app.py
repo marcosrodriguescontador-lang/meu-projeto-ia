@@ -188,13 +188,14 @@ with aba_dados:
 
     st.subheader("Contas dos demonstrativos (Balanço / DRE)")
     st.caption("Saldos do fim do período. Caixa negativo deve ser informado com sinal de menos.")
-    from auditor.leitores import CONTAS_DEMONSTRATIVO
+    from auditor.leitores import DESCRICAO_CONTAS
 
-    contas_df = pd.DataFrame({"Conta": list(CONTAS_DEMONSTRATIVO),
-                              "Valor": [ss.contas_base.get(k) for k in CONTAS_DEMONSTRATIVO]})
+    chaves = list(DESCRICAO_CONTAS)
+    contas_df = pd.DataFrame({"Conta": [DESCRICAO_CONTAS[k] for k in chaves],
+                              "Valor": [ss.contas_base.get(k) for k in chaves]})
     contas_ed = st.data_editor(contas_df, hide_index=True, disabled=["Conta"], use_container_width=True,
                                column_config={"Valor": st.column_config.NumberColumn(format="%.2f")}, key="editor_contas")
-    ss.contas = {r.Conta: float(r.Valor) for r in contas_ed.itertuples() if pd.notna(r.Valor)}
+    ss.contas = {k: float(v) for k, v in zip(chaves, contas_ed["Valor"]) if pd.notna(v)}
 
     if ss.consolidacao is not None:
         cons = ss.consolidacao
@@ -250,6 +251,9 @@ with aba_audit:
         if r.conciliacao_bancaria is not None:
             st.subheader("Faturamento x bancos")
             st.dataframe(r.conciliacao_bancaria, use_container_width=True)
+        if r.indices is not None:
+            st.subheader("Índices econômico-financeiros")
+            st.dataframe(r.indices, use_container_width=True, hide_index=True)
         if r.comparativo_regimes is not None:
             st.subheader("Comparativo de regimes (simulação)")
             st.dataframe(r.comparativo_regimes, use_container_width=True, hide_index=True)

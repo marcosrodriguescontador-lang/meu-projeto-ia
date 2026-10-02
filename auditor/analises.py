@@ -23,6 +23,7 @@ class Resultado:
     simples_mensal: pd.DataFrame | None = None
     comparativo_regimes: pd.DataFrame | None = None
     conciliacao_bancaria: pd.DataFrame | None = None
+    indices: pd.DataFrame | None = None
     observacoes_metodo: list[str] = field(default_factory=list)
 
     def add(self, *args, **kwargs) -> None:
@@ -710,6 +711,157 @@ def analisar_lucro_real_presumido(emp: Empresa, tab: pd.DataFrame, res: Resultad
 
 
 # ---------------------------------------------------------------------------
+# Índices econômico-financeiros e cruzamento Balanço x DRE
+# ---------------------------------------------------------------------------
+
+
+def _div(a: float | None, b: float | None) -> float | None:
+    if a is None or not b:
+        return None
+    return a / b
+
+
+def analisar_indices(emp: Empresa, tab: pd.DataFrame, contas: dict[str, float],
+                     totais: list[TotalPeriodo], res: Resultado) -> None:
+    c = {k: abs(v) if k not in ("patrimonio_liquido", "lucro_liquido", "caixa") else v for k, v in contas.items()}
+    at, ac, pc = c.get("total_ativo"), c.get("ativo_circulante"), c.get("passivo_circulante")
+    if not at or not ac or not pc:
+        return
+    pnc = c.get("passivo_nao_circulante", 0.0)
+    rlp = c.get("realizavel_longo_prazo", 0.0)
+    anc = c.get("ativo_nao_circulante", at - ac)
+    pl = c.get("patrimonio_liquido", at - pc - pnc)
+    disp = c.get("disponivel", (c.get("caixa", 0) or 0) + c.get("bancos", 0) + c.get("aplicacoes", 0))
+    est = c.get("estoques", 0.0)
+    receb = c.get("clientes", 0.0) + c.get("cartoes_receber", 0.0)
+    meses = meses_do_ano(emp.ano_referencia)
+    receita = c.get("receita_bruta") or float(receita_base(tab).loc[meses].sum()) or None
+    lucro = contas.get("lucro_liquido")
+    cmv = c.get("cmv")
+    compras = float(tab.loc[meses, "compras"].sum()) or total_no_ano(totais, "compras", emp.ano_referencia)
+    forn = c.get("fornecedores")
+
+    linhas = []
+
+    def add(grupo, nome, valor, formato, formula, leitura):
+        if valor is not None:
+            linhas.append({"Grupo": grupo, "Índice": nome, "Valor": formato(valor), "Fórmula": formula, "Leitura": leitura})
+
+    num = lambda v: f"{v:.2f}".replace(".", ",")
+    dias = lambda v: f"{v:.0f} dias"
+    lc, ls, li = _div(ac, pc), _div(ac - est, pc), _div(disp, pc)
+    lg = _div(ac + rlp, pc + pnc)
+    add("Liquidez", "Liquidez corrente", lc, num, "AC ÷ PC",
+        "Para cada R$ 1 de dívida de curto prazo há R$ {} no ativo circulante.".format(num(lc)) if lc else "")
+    add("Liquidez", "Liquidez seca", ls, num, "(AC − Estoques) ÷ PC", "Capacidade de pagamento sem depender da venda dos estoques.")
+    add("Liquidez", "Liquidez imediata", li, num, "Disponível ÷ PC", "Quanto das dívidas de curto prazo pode ser pago com o caixa de hoje.")
+    add("Liquidez", "Liquidez geral", lg, num, "(AC + RLP) ÷ (PC + PNC)", "Capacidade de pagamento de todas as dívidas.")
+    eg = _div(pc + pnc, at)
+    add("Estrutura", "Endividamento geral", eg, pct, "(PC + PNC) ÷ Ativo total", "Parcela do ativo financiada por terceiros.")
+    add("Estrutura", "Composição do endividamento", _div(pc, pc + pnc), pct, "PC ÷ (PC + PNC)", "Quanto das dívidas vence no curto prazo.")
+    ipl = _div(anc - rlp, pl) if pl and pl > 0 else None
+    add("Estrutura", "Imobilização do patrimônio líquido", ipl, pct, "(ANC − RLP) ÷ PL", "Quanto do capital próprio está aplicado em imobilizado/investimentos.")
+    if receita:
+        add("Rentabilidade", "Margem bruta", _div(c.get("resultado_bruto"), receita), pct, "Resultado bruto ÷ Receita bruta", "")
+        add("Rentabilidade", "Margem líquida", _div(lucro, receita), pct, "Lucro líquido ÷ Receita bruta", "")
+        add("Rentabilidade", "Giro do ativo", _div(receita, at), num, "Receita bruta ÷ Ativo total", "Quantas vezes o ativo 'gira' em vendas no ano.")
+    add("Rentabilidade", "Rentabilidade do PL (ROE)", _div(lucro, pl) if pl and pl > 0 else None, pct, "Lucro líquido ÷ PL", "")
+    add("Rentabilidade", "Rentabilidade do ativo (ROA)", _div(lucro, at), pct, "Lucro líquido ÷ Ativo total", "")
+    pmr = _div(receb * 360, receita) if receita and receb else None
+    pme = _div(est * 360, cmv) if cmv and est else None
+    pmp = _div(forn * 360, compras) if forn and compras else None
+    add("Prazos médios", "Prazo médio de recebimento", pmr, dias, "(Clientes + cartões) ÷ Receita × 360", "")
+    add("Prazos médios", "Prazo médio de estocagem", pme, dias, "Estoques ÷ CMV × 360", "")
+    add("Prazos médios", "Prazo médio de pagamento", pmp, dias, "Fornecedores ÷ Compras × 360", "")
+    if None not in (pmr, pme, pmp):
+        add("Prazos médios", "Ciclo financeiro", pme + pmr - pmp, dias, "PME + PMR − PMP",
+            "Dias que a empresa financia a operação com recursos próprios.")
+    if linhas:
+        res.indices = pd.DataFrame(linhas)
+
+    if pl is not None and pl < 0:
+        res.add(Severidade.ALTA, Area.CONTABIL, "Patrimônio líquido negativo (passivo a descoberto)",
+                f"O patrimônio líquido é de {brl(pl)}: as dívidas superam todos os bens e direitos.",
+                "Avaliar continuidade operacional, aporte de capital e renegociação de dívidas.",
+                "NBC TG 26 / CPC 26 (continuidade).", valor_envolvido=abs(pl))
+    if lc is not None and lc < 1:
+        res.add(Severidade.MEDIA, Area.FINANCEIRO, "Liquidez corrente abaixo de 1",
+                f"Liquidez corrente de {num(lc)}: o ativo circulante não cobre as dívidas de curto prazo.",
+                "Revisar o fluxo de caixa, alongar dívidas e reduzir prazos de recebimento/estoques.",
+                "Análise econômico-financeira.")
+    if eg is not None and eg > 0.7:
+        res.add(Severidade.MEDIA, Area.FINANCEIRO, "Endividamento elevado",
+                f"{pct(eg)} do ativo é financiado por terceiros.",
+                "Avaliar a capacidade de pagamento e o custo das dívidas; evitar novas captações de curto prazo.",
+                "Análise econômico-financeira.")
+    if ipl is not None and ipl > 1:
+        res.add(Severidade.BAIXA, Area.FINANCEIRO, "Imobilização do patrimônio líquido acima de 100%",
+                f"O imobilizado/investimentos equivalem a {pct(ipl)} do PL: parte foi financiada com dívidas.",
+                "Evitar financiar imobilizado com recursos de curto prazo.", "Análise econômico-financeira.")
+    cartoes = c.get("cartoes_receber")
+    if cartoes and receita:
+        dias_cartao = cartoes / receita * 360
+        if dias_cartao > 45:
+            res.add(Severidade.MEDIA, Area.CONTABIL, "Saldo de cartões a receber elevado",
+                    f"Cartões a receber de {brl(cartoes)} equivalem a {dias_cartao:.0f} dias de faturamento.",
+                    "Conciliar o saldo com os extratos das adquirentes (agenda de recebíveis). Saldos acima do prazo "
+                    "das vendas parceladas indicam recebimentos não baixados, taxas não lançadas ou vendas em "
+                    "duplicidade.", "NBC TG 48 / CPC 48; ITG 2000.", visivel_cliente=False, valor_envolvido=cartoes)
+
+
+def analisar_balanco_dre(emp: Empresa, tab: pd.DataFrame, contas: dict[str, float], res: Resultado) -> None:
+    lucro_dre = contas.get("lucro_liquido")
+    lucro_bal = contas.get("lucro_exercicio_balanco")
+    if lucro_dre is not None and lucro_bal is not None and abs(lucro_dre - lucro_bal) > 1:
+        dif = lucro_dre - lucro_bal
+        res.add(Severidade.ALTA, Area.CONTABIL, "Resultado da DRE diferente do lucro do exercício no balanço",
+                f"A DRE apresenta resultado de {brl(lucro_dre)}, mas a conta de lucros do exercício no balanço "
+                f"mostra {brl(lucro_bal)}. Diferença de {brl(dif)}.",
+                "Verificar se houve distribuição/antecipação de lucros lançada diretamente na conta do exercício "
+                "(deve estar documentada em ata/recibos e evidenciada na DMPL) ou lançamentos de ajuste sem "
+                "contrapartida no resultado. Conferir também se os demonstrativos são do mesmo período e versão.",
+                "NBC TG 26 / CPC 26; ITG 1000; LC 123/2006, art. 14.", visivel_cliente=False, valor_envolvido=abs(dif))
+        if dif > 0:
+            res.add(Severidade.INFO, Area.FISCAL, "Distribuição de lucros no período",
+                    f"A diferença de {brl(dif)} entre o resultado e o saldo do exercício sugere lucros distribuídos.",
+                    "Documentar cada distribuição por sócio (data e valor). Lucros apurados em escrituração contábil "
+                    "regular são isentos; a partir de 2026, distribuições acima de R$ 50 mil/mês por sócio têm "
+                    "retenção de 10% de IRRF.",
+                    "LC 123/2006, art. 14; Lei 9.249/95, art. 10; Lei 15.270/2025 (verificar regras vigentes).")
+
+    impostos_dre = abs(contas.get("impostos_sobre_vendas", 0.0))
+    if emp.regime == Regime.SIMPLES and impostos_dre and res.simples_mensal is not None:
+        das = float(res.simples_mensal["DAS calculado"].sum())
+        if das and abs(impostos_dre - das) > das * TOLERANCIA_IMPOSTO:
+            res.add(Severidade.MEDIA, Area.CONTABIL, "DAS contabilizado diferente do DAS recalculado",
+                    f"DRE: {brl(impostos_dre)} de Simples Nacional; recalculado: {brl(das)}.",
+                    "Conferir se todos os DAS do ano foram provisionados no mês de competência e se não há "
+                    "lançamentos em duplicidade ou fora do período. (O recálculo usa a RBT12 dos documentos "
+                    "anexados; sem o faturamento do ano anterior completo a RBT12 é proporcionalizada.)",
+                    "ITG 1000; NBC TG 00 (regime de competência).", visivel_cliente=False,
+                    valor_envolvido=abs(impostos_dre - das))
+
+    rec_fin, aplic = abs(contas.get("receitas_financeiras", 0.0)), abs(contas.get("aplicacoes", 0.0))
+    if rec_fin and aplic and rec_fin / aplic > 0.20:
+        res.add(Severidade.MEDIA, Area.CONTABIL, "Receitas financeiras incompatíveis com o saldo aplicado",
+                f"Receitas financeiras de {brl(rec_fin)} no ano sobre aplicações de {brl(aplic)} no fim do período "
+                f"(rendimento aparente de {pct(rec_fin / aplic)} ao ano, bem acima das taxas de mercado).",
+                "Conferir com os extratos e informes de rendimentos das aplicações. Valores lançados como "
+                "rendimento podem ser outros recebimentos (vendas, resgates ou transferências) classificados de "
+                "forma errada, o que afeta a receita do Simples e o cruzamento com os bancos.",
+                "ITG 1000; NBC TG 48 / CPC 48.", visivel_cliente=False, valor_envolvido=rec_fin)
+
+    if contas.get("receita_bruta") and not contas.get("pro_labore"):
+        res.add(Severidade.MEDIA, Area.PESSOAL, "Pró-labore não contabilizado",
+                "A DRE não apresenta despesa de pró-labore. Titulares e sócios administradores que trabalham na "
+                "empresa devem ter pró-labore, com recolhimento de INSS (11%) e, fora do Simples ou no Anexo IV, "
+                "da contribuição patronal.",
+                "Confirmar com o cliente se há retiradas mensais; formalizar o pró-labore na folha/eSocial e "
+                "diferenciar de distribuição de lucros.",
+                "Lei 8.212/91, art. 12, V, 'f' e art. 21; IN RFB 2.110/2022.")
+
+
+# ---------------------------------------------------------------------------
 # Totais de período (livros fiscais anuais)
 # ---------------------------------------------------------------------------
 
@@ -815,6 +967,8 @@ def auditar(
     analisar_aplicacoes(emp, tab, contas, res)
     analisar_folha(emp, tab, res)
     analisar_demonstrativos(emp, tab, contas, res)
+    analisar_balanco_dre(emp, tab, contas, res)
+    analisar_indices(emp, tab, contas, totais, res)
     comparar_regimes(emp, tab, contas, res)
     from .modelos import ORDEM_SEVERIDADE
 

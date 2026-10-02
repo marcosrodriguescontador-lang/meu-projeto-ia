@@ -148,13 +148,25 @@ def competencia(d: date) -> str:
 # ---------------------------------------------------------------------------
 
 
+def _texto_pagina(pagina) -> str:
+    """Texto da página; balanços em duas colunas (ativo | passivo) são lidos coluna por coluna."""
+    texto = pagina.extract_text() or ""
+    if re.search(r"\bATIVO\b.*\bPASSIVO\b", texto):
+        x = next((w["x0"] for w in pagina.extract_words() if w["text"].upper().startswith("PASSIVO")), None)
+        if x:
+            esquerda = pagina.crop((0, 0, x - 2, pagina.height)).extract_text() or ""
+            direita = pagina.crop((x - 2, 0, pagina.width, pagina.height)).extract_text() or ""
+            return esquerda + "\n" + direita
+    return texto
+
+
 def _ler_pdf(conteudo: bytes) -> tuple[str, list[pd.DataFrame], list[str]]:
     import pdfplumber
 
     textos, tabelas, avisos = [], [], []
     with pdfplumber.open(io.BytesIO(conteudo)) as pdf:
         for pagina in pdf.pages:
-            textos.append(pagina.extract_text() or "")
+            textos.append(_texto_pagina(pagina))
             for t in pagina.extract_tables() or []:
                 if t and len(t) > 1:
                     cab = [str(c or f"col{i}") for i, c in enumerate(t[0])]
@@ -456,12 +468,12 @@ def _competencia_do_texto(texto: str) -> str | None:
     return None
 
 
-def valor_por_palavras(texto: str, palavras: list[str]) -> float | None:
+def valor_por_palavras(texto: str, palavras: list[str], excluir: tuple[str, ...] = ()) -> float | None:
     """Último valor monetário da primeira linha que contém alguma das palavras (em ordem de prioridade)."""
     linhas = [(normalizar(l), l) for l in texto.splitlines()]
     for p in palavras:
         for n, original in linhas:
-            if p in n:
+            if p in n and not any(x in n for x in excluir):
                 valores = [parse_valor(v.group(1) + (v.group(2) or "")) for v in RE_VALOR.finditer(original)]
                 valores = [v for v in valores if v is not None]
                 if valores:
@@ -483,6 +495,18 @@ def _blocos_por_competencia(texto: str) -> list[tuple[str, str]]:
 
 
 CONTAS_DEMONSTRATIVO = {
+    "ativo_circulante": ["ativo circulante"],
+    "disponivel": ["disponivel", "disponibilidades", "caixa e equivalentes"],
+    "clientes": ["clientes", "duplicatas a receber", "contas a receber"],
+    "cartoes_receber": ["operacoes com cartao", "cartoes de credito a receber", "cartao de credito a receber"],
+    "ativo_nao_circulante": ["ativo nao circulante"],
+    "realizavel_longo_prazo": ["realizavel a longo prazo"],
+    "imobilizado": ["imobilizado"],
+    "passivo_circulante": ["passivo circulante"],
+    "fornecedores": ["fornecedores"],
+    "emprestimos": ["emprestimos e financiamentos", "financiamentos"],
+    "passivo_nao_circulante": ["passivo nao circulante", "exigivel a longo prazo"],
+    "lucros_acumulados": ["lucros acumulados", "lucros e prejuizos acumulados"],
     "caixa": ["caixa geral", "caixa "],
     "bancos": ["bancos conta movimento", "bancos c/ movimento", "bancos"],
     "aplicacoes": ["aplicacoes financeiras", "aplicacao financeira"],
@@ -492,7 +516,7 @@ CONTAS_DEMONSTRATIVO = {
     "patrimonio_liquido": ["total do patrimonio liquido", "patrimonio liquido"],
     "capital_social": ["capital social"],
     "emprestimos_socios": ["emprestimos de socios", "mutuo", "conta corrente de socios", "adiantamento de socios"],
-    "receita_bruta": ["receita bruta", "receita operacional bruta", "receita de vendas"],
+    "receita_bruta": ["receita operacional bruta", "receita bruta de vendas", "receita bruta", "receita de vendas"],
     "cmv": ["custo das mercadorias", "custo dos produtos", "custo dos servicos", "cmv", "cpv", "csp"],
     "despesas_pessoal": ["despesas com pessoal", "salarios e ordenados", "salarios"],
     "pro_labore": ["pro-labore", "pro labore"],
@@ -501,16 +525,66 @@ CONTAS_DEMONSTRATIVO = {
     "prejuizo": ["prejuizo do exercicio", "prejuizo liquido"],
     "distribuicao_lucros": ["lucros distribuidos", "distribuicao de lucros", "dividendos"],
     "impostos_resultado": ["provisao para irpj", "irpj", "contribuicao social"],
+    "impostos_sobre_vendas": ["impostos incidentes sobre vendas", "(-) simples", "deducoes da receita bruta"],
+    "resultado_bruto": ["resultado bruto", "lucro bruto"],
+    "depreciacao": ["depreciacoes e amortizacoes", "depreciacoes", "depreciacao"],
+    "lucro_exercicio_balanco": ["lucros e prejuizos do exercicio", "lucros do exercicio"],
+}
+
+
+EXCLUIR_CONTAS = {
+    "receita_bruta": ("deduc", "(-)"),
+    "lucro_liquido": ("antes",),
+    "despesas_pessoal": ("encargos sobre",),
 }
 
 
 def extrair_contas(texto: str) -> dict[str, float]:
+    from .layouts import balanco_patrimonial
+
     contas = {}
     for chave, palavras in CONTAS_DEMONSTRATIVO.items():
-        v = valor_por_palavras(texto, palavras)
+        v = valor_por_palavras(texto, palavras, EXCLUIR_CONTAS.get(chave, ()))
         if v is not None:
             contas[chave] = v
+    if "demonstracao do resultado" in normalizar(texto) and "balanco" not in normalizar(texto):
+        # DRE: palavras como "imobilizado" aparecem em contas de resultado, não patrimoniais.
+        for chave in list(contas):
+            if chave in CONTAS_PATRIMONIAIS:
+                contas.pop(chave)
+    especifico = balanco_patrimonial(texto)
+    if especifico:
+        # Balanço reconhecido por seção: descarta as leituras genéricas de contas patrimoniais.
+        for chave in list(contas):
+            if chave in CONTAS_PATRIMONIAIS:
+                contas.pop(chave)
+        contas.update(especifico)
     return contas
+
+
+CONTAS_PATRIMONIAIS = {
+    "caixa", "bancos", "aplicacoes", "estoques", "total_ativo", "total_passivo", "patrimonio_liquido",
+    "capital_social", "emprestimos_socios", "ativo_circulante", "disponivel", "clientes", "cartoes_receber",
+    "ativo_nao_circulante", "realizavel_longo_prazo", "imobilizado", "passivo_circulante", "fornecedores",
+    "emprestimos", "passivo_nao_circulante", "lucros_acumulados", "lucro_exercicio_balanco",
+}
+
+DESCRICAO_CONTAS = {
+    "total_ativo": "Total do ativo", "ativo_circulante": "Ativo circulante", "disponivel": "Disponível",
+    "caixa": "Caixa", "bancos": "Bancos", "aplicacoes": "Aplicações financeiras", "clientes": "Clientes / duplicatas a receber",
+    "cartoes_receber": "Cartões de crédito/débito a receber", "estoques": "Estoques",
+    "ativo_nao_circulante": "Ativo não circulante", "realizavel_longo_prazo": "Realizável a longo prazo",
+    "imobilizado": "Imobilizado (líquido)", "total_passivo": "Total do passivo (com PL)",
+    "passivo_circulante": "Passivo circulante", "fornecedores": "Fornecedores", "emprestimos": "Empréstimos e financiamentos",
+    "passivo_nao_circulante": "Passivo não circulante", "emprestimos_socios": "Empréstimos de sócios / mútuo",
+    "patrimonio_liquido": "Patrimônio líquido", "capital_social": "Capital social", "lucros_acumulados": "Lucros acumulados",
+    "receita_bruta": "Receita bruta (DRE)", "cmv": "Custo das mercadorias/serviços (CMV/CSP)",
+    "despesas_pessoal": "Despesas com pessoal", "pro_labore": "Pró-labore", "receitas_financeiras": "Receitas financeiras",
+    "lucro_liquido": "Lucro líquido do exercício", "prejuizo": "Prejuízo do exercício",
+    "distribuicao_lucros": "Lucros distribuídos", "impostos_resultado": "IRPJ/CSLL sobre o lucro",
+    "impostos_sobre_vendas": "Impostos sobre vendas (DAS/PIS/COFINS/ICMS na DRE)", "resultado_bruto": "Resultado bruto",
+    "depreciacao": "Depreciações e amortizações", "lucro_exercicio_balanco": "Lucros do exercício (no balanço)",
+}
 
 
 def _series_folha(texto: str, tabelas: list[pd.DataFrame], ano: int) -> dict[str, dict[str, float]]:

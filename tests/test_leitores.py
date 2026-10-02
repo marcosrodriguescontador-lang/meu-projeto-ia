@@ -131,3 +131,60 @@ def test_questor_totais_icms_por_natureza():
     assert (totais["faturamento"].inicio, totais["faturamento"].fim) == ("2025-01", "2025-12")
     assert totais["compras"].detalhe["entrada_imobilizado"] == 300.0
     assert totais["faturamento"].detalhe["venda_imobilizado"] == 70.0
+
+
+BALANCO_FICTICIO = """BALANÇO PATRIMONIAL
+ATIVO 1.000,00
+CIRCULANTE 600,00
+DISPONÍVEL 200,00
+BENS NUMERÁRIOS 50,00
+APLICAÇÕES DE LIQUIDEZ IMEDIATA 150,00
+OPERACOES COM CARTAO DE CREDITO/DEBITO 300,00
+ESTOQUES 100,00
+NÃO CIRCULANTE 400,00
+IMOBILIZADO 400,00
+(-) DEP/AMORT/EXAUSTAO ACUMULADA (50,00)
+PASSIVO 1.000,00
+CIRCULANTE 250,00
+FORNECEDORES 200,00
+PATRIMÔNIO LÍQUIDO 750,00
+CAPITAL SOCIAL 10,00
+LUCROS E PREJUÍZOS ACUMULADOS 740,00
+LUCROS E PREJUÍZOS DO EXERCÍCIO 300,00
+"""
+
+DRE_FICTICIA = """DEMONSTRAÇÃO DO RESULTADO DO EXERCÍCIO
+RECEITA OPERACIONAL BRUTA 5.000,00
+(-) DEDUCÕES DA RECEITA BRUTA (400,00)
+(-) CUSTO DAS MERCADORIAS VENDIDAS (2.000,00)
+Vendas do Ativo Imobilizado 70,00
+RECEITAS FINANCEIRAS 30,00
+(=) RESULTADO LIQUIDO DO EXERCICIO 500,00
+"""
+
+
+def test_balanco_em_secoes_e_dre():
+    from auditor.leitores import extrair_contas
+
+    b = extrair_contas(BALANCO_FICTICIO)
+    assert b["ativo_circulante"] == 600.0 and b["passivo_circulante"] == 250.0
+    assert b["caixa"] == 50.0 and b["cartoes_receber"] == 300.0
+    assert b["ativo_nao_circulante"] == 400.0 and b["patrimonio_liquido"] == 750.0
+    assert b["lucro_exercicio_balanco"] == 300.0
+    d = extrair_contas(DRE_FICTICIA)
+    assert d["receita_bruta"] == 5000.0
+    assert d["lucro_liquido"] == 500.0
+    assert "imobilizado" not in d
+
+
+def test_indices_e_balanco_x_dre():
+    from auditor.analises import auditar
+    from auditor.leitores import extrair_contas
+    from auditor.modelos import Atividade, Empresa, Regime, tabela_mensal_vazia
+
+    contas = {**extrair_contas(DRE_FICTICIA), **extrair_contas(BALANCO_FICTICIO)}
+    emp = Empresa("X", "", Regime.SIMPLES, Atividade.COMERCIO, "I", ano_referencia=2025)
+    r = auditar(emp, tabela_mensal_vazia(2025), contas)
+    idx = dict(zip(r.indices["Índice"], r.indices["Valor"]))
+    assert idx["Liquidez corrente"] == "2,40"
+    assert any(a.titulo.startswith("Resultado da DRE diferente") for a in r.achados)

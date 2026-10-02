@@ -145,3 +145,64 @@ def questor_icms_natureza(texto: str, nome: str = ""):
         TotalPeriodo("faturamento", inicio, fim, round(faturamento, 2), nome, detalhe),
         TotalPeriodo("compras", inicio, fim, round(compras, 2), nome, detalhe),
     ]
+
+
+# ---------------------------------------------------------------------------
+# Balanço patrimonial (lido por seção: ativo e passivo)
+# ---------------------------------------------------------------------------
+
+_ATIVO = [
+    ("total_ativo", r"(total do )?ativo( total)?\s+[\d(]"),
+    ("ativo_circulante", r"(ativo )?circulante\b"),
+    ("disponivel", r"(disponivel|disponibilidades|caixa e equivalentes)"),
+    ("caixa", r"(bens numerarios|caixa\b(?! e equiv))"),
+    ("bancos", r"bancos"),
+    ("aplicacoes", r"aplicac(oes|ao)"),
+    ("clientes", r"(clientes|duplicatas a receber|contas a receber)"),
+    ("cartoes_receber", r"(operacoes com cartao|cartoes? de credito|cartoes a receber)"),
+    ("estoques", r"estoques?\b"),
+    ("ativo_nao_circulante", r"(ativo )?nao circulante"),
+    ("realizavel_longo_prazo", r"realizavel a longo prazo"),
+    ("imobilizado", r"imobilizado\b(?! em andamento)"),
+]
+_PASSIVO = [
+    ("total_passivo", r"(total do )?passivo( total)?( e patrimonio liquido)?\s+[\d(]"),
+    ("passivo_circulante", r"(passivo )?circulante\b"),
+    ("fornecedores", r"fornecedores"),
+    ("emprestimos", r"(emprestimos e financiamentos|financiamentos|emprestimos bancarios)"),
+    ("emprestimos_socios", r"(emprestimos de socios|mutuo|conta corrente de socios)"),
+    ("passivo_nao_circulante", r"((passivo )?nao circulante|exigivel a longo prazo)"),
+    ("patrimonio_liquido", r"patrimonio liquido"),
+    ("capital_social", r"capital social"),
+    ("lucros_acumulados", r"lucros? (e prejuizos )?acumulados"),
+    ("lucro_exercicio_balanco", r"(lucros? e prejuizos do exercicio|lucros? do exercicio|resultado do exercicio|lucro liquido do exercicio)"),
+]
+
+
+def _ler_secao(linhas: list[str], padroes: list[tuple[str, str]]) -> dict[str, float]:
+    contas: dict[str, float] = {}
+    for linha in linhas:
+        n = normalizar(linha)
+        for chave, padrao in padroes:
+            if chave in contas or not re.match(padrao, n):
+                continue
+            valores = re.findall(rf"\(?{VALOR}\)?", linha)
+            if valores:
+                contas[chave] = parse_valor(valores[-1]) or 0.0
+            break
+    return contas
+
+
+def balanco_patrimonial(texto: str) -> dict[str, float] | None:
+    linhas = texto.splitlines()
+    n = [normalizar(l) for l in linhas]
+    tem_titulo = any("balanco" in l for l in n)
+    if not tem_titulo and not (any(re.match(r"ativo\b", l) for l in n) and any(re.match(r"passivo\b", l) for l in n)):
+        return None
+    i_ativo = next((i for i, l in enumerate(n) if re.match(r"(total do )?ativo\b", l)), None)
+    i_passivo = next((i for i, l in enumerate(n) if re.match(r"(total do )?passivo\b", l)), None)
+    if i_ativo is None or i_passivo is None or i_passivo <= i_ativo:
+        return None
+    contas = _ler_secao(linhas[i_ativo:i_passivo], _ATIVO)
+    contas.update(_ler_secao(linhas[i_passivo:], _PASSIVO))
+    return contas if len(contas) >= 3 else None
