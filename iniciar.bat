@@ -33,6 +33,12 @@ if errorlevel 1 (
 )
 
 echo.
+rem Evita a pergunta de e-mail do Streamlit na primeira execucao.
+if not exist "%USERPROFILE%\.streamlit\credentials.toml" (
+    mkdir "%USERPROFILE%\.streamlit" 2>nul
+    > "%USERPROFILE%\.streamlit\credentials.toml" echo [general]
+    >> "%USERPROFILE%\.streamlit\credentials.toml" echo email = ""
+)
 echo Abrindo o Auditor no navegador. Para encerrar, feche esta janela.
 ".venv\Scripts\python.exe" -m streamlit run app.py --server.headless false
 pause
