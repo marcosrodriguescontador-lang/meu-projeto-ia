@@ -206,3 +206,53 @@ def balanco_patrimonial(texto: str) -> dict[str, float] | None:
     contas = _ler_secao(linhas[i_ativo:i_passivo], _ATIVO)
     contas.update(_ler_secao(linhas[i_passivo:], _PASSIVO))
     return contas if len(contas) >= 3 else None
+
+
+# ---------------------------------------------------------------------------
+# Questor - Folha de pagamento "Relação de Cálculo Completa"
+# ---------------------------------------------------------------------------
+
+
+def _valor_apos(texto: str, rotulo: str) -> float | None:
+    m = re.search(re.escape(rotulo) + rf"\s*:?\s*({VALOR})", texto)
+    return parse_valor(m.group(1)) if m else None
+
+
+def _ultimo_valor_da_linha_seguinte(texto: str, titulo: str) -> float | None:
+    linhas = texto.splitlines()
+    for i, l in enumerate(linhas):
+        if titulo in l and i + 1 < len(linhas):
+            return _ultimo_valor(linhas[i + 1])
+    return None
+
+
+def questor_folha(texto: str) -> dict[str, dict[str, float]] | None:
+    n = normalizar(texto)
+    if "relacao de calculo" not in n or "folha de pagamento" not in n:
+        return None
+    series: dict[str, dict[str, float]] = defaultdict(dict)
+    # Um relatório pode trazer vários meses: cada um começa em "Período: dd/mm/aaaa a dd/mm/aaaa".
+    marcas = list(re.finditer(r"Per[ií]odo:\s*\d{2}/(\d{2})/(\d{4})\s*a", texto))
+    blocos: dict[str, str] = {}
+    for i, m in enumerate(marcas):
+        comp = f"{m.group(2)}-{m.group(1)}"
+        fim = marcas[i + 1].start() if i + 1 < len(marcas) else len(texto)
+        blocos[comp] = blocos.get(comp, "") + texto[m.start():fim]
+    for comp, bloco in blocos.items():
+        # "Total dos Contratos" se repete (por filial e geral): usa a primeira ocorrência do mês.
+        proventos = _ultimo_valor_da_linha_seguinte(bloco, "TOTAL DOS PROVENTOS")
+        diretores = _valor_apos(bloco, "Sal.Contr.Diretores") or 0.0
+        fgts = _valor_apos(bloco, "Total FGTS") or 0.0
+        if fgts and (m := re.search(rf"Total FGTS\s+{VALOR}\s+({VALOR})", bloco)):
+            fgts = parse_valor(m.group(1)) or 0.0
+        terceiros = re.search(rf"(?<![.\w])Terceiros:\s*({VALOR})", bloco)
+        cpp = (_valor_apos(bloco, "Parte Empresa") or 0.0) + (parse_valor(terceiros.group(1)) or 0.0 if terceiros else 0.0)
+        rat = re.search(rf"Parte RAT \+ Acr[ée]s\. FAP:\s*({VALOR})", bloco)
+        cpp += parse_valor(rat.group(1)) or 0.0 if rat else 0.0
+        if proventos is None:
+            continue
+        pro_labore = diretores
+        series["folha_salarios"][comp] = round(proventos - pro_labore, 2)
+        series["pro_labore"][comp] = pro_labore
+        series["encargos_folha"][comp] = round(fgts + cpp, 2)
+    return dict(series) if series else None

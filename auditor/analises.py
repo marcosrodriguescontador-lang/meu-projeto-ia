@@ -496,6 +496,14 @@ def analisar_folha(emp: Empresa, tab: pd.DataFrame, res: Resultado) -> None:
         return
     rel = enc / (sal + pro)
     res.indicadores["Encargos / folha"] = pct(rel)
+    if pro == 0 and not (emp.regime == Regime.SIMPLES and emp.anexo_simples in ("III", "V")):
+        res.add(Severidade.MEDIA, Area.PESSOAL, "Folha de pagamento sem pró-labore",
+                "A folha não tem pró-labore (salário de contribuição de diretores/contribuintes individuais = 0). "
+                "Titulares e sócios administradores que trabalham na empresa devem receber pró-labore, com "
+                "desconto de INSS (11%) e IRRF.",
+                "Confirmar com o cliente as retiradas mensais; incluir o pró-labore na folha e no eSocial e "
+                "separar o que é remuneração do que é distribuição de lucros.",
+                "Lei 8.212/91, art. 12, V, 'f', art. 21 e art. 28, III; IN RFB 2.110/2022.")
     simples_sem_cpp = emp.regime == Regime.SIMPLES and emp.anexo_simples != "IV"
     if simples_sem_cpp and rel > 0.15:
         res.add(Severidade.MEDIA, Area.PESSOAL, "Encargos de folha altos para empresa do Simples",
@@ -878,7 +886,8 @@ def analisar_balanco_dre(emp: Empresa, tab: pd.DataFrame, contas: dict[str, floa
                 "forma errada, o que afeta a receita do Simples e o cruzamento com os bancos.",
                 "ITG 1000; NBC TG 48 / CPC 48.", visivel_cliente=False, valor_envolvido=rec_fin)
 
-    if contas.get("receita_bruta") and not contas.get("pro_labore"):
+    tem_folha = float(tab.loc[meses_do_ano(emp.ano_referencia), ["folha_salarios", "pro_labore"]].sum().sum()) > 0
+    if contas.get("receita_bruta") and not contas.get("pro_labore") and not tem_folha:
         res.add(Severidade.MEDIA, Area.PESSOAL, "Pró-labore não contabilizado",
                 "A DRE não apresenta despesa de pró-labore. Titulares e sócios administradores que trabalham na "
                 "empresa devem ter pró-labore, com recolhimento de INSS (11%) e, fora do Simples ou no Anexo IV, "

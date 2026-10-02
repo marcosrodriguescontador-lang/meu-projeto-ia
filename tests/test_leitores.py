@@ -236,3 +236,28 @@ def test_classificacao_nao_operacional_e_retiradas():
     nao_op = sorted(l.valor for l in c.nao_operacionais)
     assert nao_op == [10000.0, 14995.66]  # Pix da própria empresa e resgate de aplicação
     assert c.tabela.loc["2025-05", "retiradas_titular"] == 1000.0
+
+
+FOLHA_QUESTOR = """Relação de Cálculo Completa - Folha de Pagamento
+Período: 01/05/2025 a 31/05/2025 Tp: 1 Mensal
+TOTAL DOS PROVENTOS
+14.314,00 0,00 0,00 0,00 14.314,00
+Parte Empresa: 0,00 Sal.Contr.Empregados: 14.314,00 Líquido: 868,87
+Parte RAT + Acrés. FAP: 0,00(0,00 + 0,00) Sal.Contr.Terceiros: 9.999,00
+Diretor / Contribuinte Individual: 0,00 Código Terceiros: 115
+Terceiros: 0,00 Compensações: 0,00
+Sal.Contr.Diretores: 2.000,00
+Total FGTS 14.314,00 1.145,12 0,00 1.145,12
+Período: 01/05/2025 a 31/05/2025 Tp: 1 Mensal
+TOTAL DOS PROVENTOS
+14.314,00 0,00 0,00 0,00 14.314,00
+"""
+
+
+def test_folha_questor():
+    from auditor.layouts import questor_folha
+
+    s = questor_folha(FOLHA_QUESTOR)
+    assert s["folha_salarios"] == {"2025-05": 12314.0}
+    assert s["pro_labore"] == {"2025-05": 2000.0}
+    assert s["encargos_folha"] == {"2025-05": 1145.12}

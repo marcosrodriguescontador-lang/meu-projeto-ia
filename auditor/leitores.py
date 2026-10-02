@@ -617,6 +617,11 @@ DESCRICAO_CONTAS = {
 
 
 def _series_folha(texto: str, tabelas: list[pd.DataFrame], ano: int) -> dict[str, dict[str, float]]:
+    from .layouts import questor_folha
+
+    especifico = questor_folha(texto)
+    if especifico:
+        return especifico
     series: dict[str, dict[str, float]] = defaultdict(dict)
     for comp, bloco in _blocos_por_competencia(texto):
         sal = valor_por_palavras(bloco, ["total de proventos", "total proventos", "total bruto", "salario contribuicao", "base inss", "salarios"])
