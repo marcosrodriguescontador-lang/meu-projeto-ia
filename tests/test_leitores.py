@@ -102,3 +102,32 @@ def test_pgdas_d():
     # Duas declarações com os mesmos meses anteriores não podem somar em dobro
     tab2 = consolidar([doc, doc], 2026).tabela
     assert tab2.loc["2025-02", "faturamento_declarado"] == 2500.0
+
+
+QUESTOR_FICTICIO = """0001 EMPRESA FICTICIA - Matriz 15/04/2026 14:55 Pág:0001
+CNPJ: 00.000.000/0001-00 Período: 01/01/2025 a 31/12/2025
+Totais ICMS por Natureza
+- Entradas
+1.102.002 Compra para comerc - a prazo 1.000,00 0,00 0,00 0,00 1.000,00
+1.202.001 Devolucao de venda 50,00 0,00 0,00 0,00 50,00
+1.551.002 Compra de bem para o ativo imobilizado - a prazo 300,00 0,00 0,00 0,00 300,00
+*** Totais no Estado 1.350,00 0,00 0,00 0,00 1.350,00
+- Saídas
+5.102.001 Venda de merc adq/receb de terc - a vista 5.000,00 0,00 0,00 0,00 5.000,00
+5.202 Devolução de compra para comercialização 100,00 0,00 0,00 0,00 100,00
+5.551.001 Venda de bem do ativo imobilizado - a vista 70,00 0,00 0,00 0,00 70,00
+"""
+
+
+def test_questor_totais_icms_por_natureza():
+    from auditor.leitores import extrair_dados
+    from auditor.modelos import Documento
+
+    doc = Documento("Totais ICMS por Natureza.pdf", TipoDocumento.COMPRAS, texto=QUESTOR_FICTICIO)
+    extrair_dados(doc, 2025)
+    totais = {t.coluna: t for t in doc.totais}
+    assert totais["faturamento"].valor == 4950.0  # vendas - devoluções de venda
+    assert totais["compras"].valor == 900.0  # compras - devoluções de compra
+    assert (totais["faturamento"].inicio, totais["faturamento"].fim) == ("2025-01", "2025-12")
+    assert totais["compras"].detalhe["entrada_imobilizado"] == 300.0
+    assert totais["faturamento"].detalhe["venda_imobilizado"] == 70.0

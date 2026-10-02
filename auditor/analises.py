@@ -8,7 +8,7 @@ import pandas as pd
 
 from . import tributos as T
 from .formatacao import brl, mes_extenso, pct
-from .modelos import Achado, Area, Empresa, Regime, Severidade, meses_do_ano
+from .modelos import Achado, Area, Empresa, Regime, Severidade, TotalPeriodo, meses_do_ano
 
 TOLERANCIA_BANCO = 0.10  # créditos operacionais até 10% acima do faturamento são tolerados
 TOLERANCIA_DECLARADO = 0.01
@@ -304,7 +304,7 @@ def _proximidade_faixa(df: pd.DataFrame, emp: Empresa, res: Resultado) -> None:
 # ---------------------------------------------------------------------------
 
 
-def analisar_bancos(emp: Empresa, tab: pd.DataFrame, res: Resultado) -> None:
+def analisar_bancos(emp: Empresa, tab: pd.DataFrame, res: Resultado, totais: list[TotalPeriodo] | None = None) -> None:
     meses = meses_do_ano(emp.ano_referencia)
     t = tab.loc[meses]
     if t["creditos_bancarios"].sum() == 0:
@@ -365,7 +365,7 @@ def analisar_bancos(emp: Empresa, tab: pd.DataFrame, res: Resultado) -> None:
     if emp.regime == Regime.SIMPLES:
         ingressos = float(t["creditos_bancarios"].sum())
         despesas = float(t["debitos_bancarios"].sum())
-        compras = float(t["compras"].sum())
+        compras = float(t["compras"].sum()) or (total_no_ano(totais or [], "compras", emp.ano_referencia) or 0.0)
         if ingressos > 0 and despesas > ingressos * 1.2:
             res.add(Severidade.ALTA, Area.FISCAL, "Despesas pagas superam em mais de 20% os ingressos",
                     f"Saídas bancárias {brl(despesas)} contra entradas {brl(ingressos)} no ano.",
@@ -402,9 +402,9 @@ def analisar_declarado(emp: Empresa, tab: pd.DataFrame, res: Resultado) -> None:
                 visivel_cliente=False, valor_envolvido=total)
 
 
-def analisar_compras(emp: Empresa, tab: pd.DataFrame, res: Resultado) -> None:
+def analisar_compras(emp: Empresa, tab: pd.DataFrame, res: Resultado, totais: list[TotalPeriodo] | None = None) -> None:
     meses = meses_do_ano(emp.ano_referencia)
-    compras = float(tab.loc[meses, "compras"].sum())
+    compras = float(tab.loc[meses, "compras"].sum()) or (total_no_ano(totais or [], "compras", emp.ano_referencia) or 0.0)
     receita = float(receita_base(tab).loc[meses].sum())
     if compras == 0 or receita == 0:
         return
@@ -592,13 +592,23 @@ def comparar_regimes(emp: Empresa, tab: pd.DataFrame, contas: dict[str, float], 
 
     if receita <= T.LIMITE_SIMPLES * (1 + T.TOLERANCIA_EXCESSO):
         anexo = emp.anexo_simples if emp.regime == Regime.SIMPLES else _anexo_provavel(emp)
+        # Para comparar com Presumido/Real (calculados sem ICMS/ISS), retira do DAS a parcela de ICMS/ISS.
         if res.simples_mensal is not None and emp.regime == Regime.SIMPLES:
-            das = float(res.simples_mensal["DAS calculado"].sum())
+            sm = res.simples_mensal
+            das = float(sum(
+                l["DAS calculado"] * (1 - T.PARTILHA_ICMS_ISS[l["Anexo aplicado"]][int(l["Faixa"]) - 1])
+                for _, l in sm.iterrows()
+            ))
         else:
-            das = sum(T.calcular_simples(anexo, float(r), receita).valor_das for r in receitas)
+            das = 0.0
+            for r in receitas:
+                c = T.calcular_simples(anexo, float(r), receita)
+                das += c.valor_das * (1 - T.PARTILHA_ICMS_ISS[c.anexo_aplicado][c.faixa - 1])
         cpp = salarios * T.ALIQUOTA_CPP_ANEXO_IV if anexo == "IV" else 0.0
+        imposto = "ICMS" if anexo in ("I", "II") else "ISS"
         linhas.append({"Regime": f"Simples Nacional ({T.DESCRICAO_ANEXOS[anexo]})", "Tributos": das + cpp,
-                       "Observação": "inclui CPP de 22% fora do DAS" if cpp else "CPP incluída no DAS"})
+                       "Observação": f"DAS sem a parcela do {imposto}, para comparar com os demais regimes"
+                                     + ("; inclui CPP de 22% fora do DAS" if cpp else "; CPP incluída no DAS")})
 
     cpp_normal = salarios * 0.268  # 20% + RAT ~1% + terceiros 5,8%
     pres = T.calcular_presumido_anual(receitas.tolist(), emp.atividade, fin, emp.ano_referencia)
@@ -624,7 +634,7 @@ def comparar_regimes(emp: Empresa, tab: pd.DataFrame, contas: dict[str, float], 
         economia = atual["Tributos"] - melhor["Tributos"]
         if economia > receita * 0.01:
             res.add(Severidade.MEDIA, Area.FISCAL, "Possível economia com mudança de regime tributário",
-                    f"Pela simulação, o {melhor['Regime']} custaria {brl(melhor['Tributos'])} no ano, contra "
+                    f"Pela simulação (tributos federais e INSS, sem ICMS/ISS), o {melhor['Regime']} custaria {brl(melhor['Tributos'])} no ano, contra "
                     f"{brl(atual['Tributos'])} no regime atual: economia estimada de {brl(economia)}.",
                     "Fazer um estudo de planejamento tributário completo (ICMS/ISS, benefícios, créditos, "
                     "obrigações acessórias) antes de janeiro, quando a opção é feita para o ano todo.",
@@ -700,21 +710,108 @@ def analisar_lucro_real_presumido(emp: Empresa, tab: pd.DataFrame, res: Resultad
 
 
 # ---------------------------------------------------------------------------
+# Totais de período (livros fiscais anuais)
+# ---------------------------------------------------------------------------
+
+
+def _meses_entre(inicio: str, fim: str) -> list[str]:
+    a, m = map(int, inicio.split("-"))
+    fa, fm = map(int, fim.split("-"))
+    meses = []
+    while (a, m) <= (fa, fm):
+        meses.append(f"{a}-{m:02d}")
+        a, m = (a + 1, 1) if m == 12 else (a, m + 1)
+    return meses
+
+
+def total_no_ano(totais: list[TotalPeriodo], coluna: str, ano: int) -> float | None:
+    """Soma dos totais de período de uma coluna contidos no ano (None se não houver)."""
+    lista = [t for t in totais if t.coluna == coluna and t.inicio[:4] == t.fim[:4] == str(ano)]
+    return sum(t.valor for t in lista) if lista else None
+
+
+def analisar_totais_periodo(emp: Empresa, tab: pd.DataFrame, totais: list[TotalPeriodo], res: Resultado) -> None:
+    ano = emp.ano_referencia
+    for t in totais:
+        meses = [m for m in _meses_entre(t.inicio, t.fim) if m in tab.index]
+        if not meses or t.inicio[:4] != str(ano):
+            continue
+        periodo = f"{mes_extenso(t.inicio)} a {mes_extenso(t.fim)}"
+        d = t.detalhe
+        if t.coluna == "faturamento":
+            res.indicadores["Vendas nos livros fiscais (CFOP)"] = brl(t.valor)
+            declarado = float(tab.loc[meses, "faturamento_declarado"].sum())
+            nome_decl = "PGDAS-D" if emp.regime == Regime.SIMPLES else "declarações (DCTF/EFD)"
+            if declarado > 0:
+                dif = t.valor - declarado
+                res.indicadores[f"Receita declarada no {nome_decl} ({periodo})"] = brl(declarado)
+                if abs(dif) > 1.0:
+                    grave = abs(dif) > declarado * TOLERANCIA_DECLARADO
+                    res.add(Severidade.ALTA if grave else Severidade.BAIXA, Area.FISCAL,
+                            f"Vendas nos livros fiscais x receita declarada no {nome_decl}",
+                            f"No período {periodo}, as saídas com CFOP de venda somam {brl(d.get('vendas', t.valor))}"
+                            + (f" menos devoluções de venda de {brl(d['devolucoes_venda'])} = {brl(t.valor)}"
+                               if d.get("devolucoes_venda") else "")
+                            + f", enquanto a receita declarada foi {brl(declarado)}. "
+                            f"Diferença de {brl(dif)} ({'receita declarada a menor' if dif > 0 else 'receita declarada a maior'}).",
+                            "Conciliar mês a mês as notas de saída (livro de saídas / SPED Fiscal) com a receita informada "
+                            "na declaração: notas canceladas, devoluções, CFOPs classificados como venda e meses trocados. "
+                            + ("Se a receita foi declarada a menor, retificar e recolher a diferença antes de qualquer "
+                               "procedimento fiscal." if dif > 0 else "Se foi declarada a maior, avaliar retificação e "
+                               "restituição/compensação."),
+                            "LC 123/2006, art. 18 e art. 25; CTN, art. 138." if emp.regime == Regime.SIMPLES
+                            else "Lei 9.430/96; IN RFB 2.005/2021 (DCTF); CTN, art. 138.",
+                            visivel_cliente=False, valor_envolvido=abs(dif))
+            fat_mensal = float(tab.loc[meses, "faturamento"].sum())
+            if fat_mensal > 0 and abs(fat_mensal - t.valor) > max(t.valor * TOLERANCIA_DECLARADO, 1.0):
+                res.add(Severidade.MEDIA, Area.FISCAL, "Relatórios de faturamento diferentes dos livros fiscais",
+                        f"Relatórios mensais de faturamento: {brl(fat_mensal)}; livros fiscais (CFOP de venda): {brl(t.valor)}.",
+                        "Verificar se todos os documentos fiscais foram escriturados e se os relatórios gerenciais "
+                        "incluem itens que não são venda.", visivel_cliente=False,
+                        valor_envolvido=abs(fat_mensal - t.valor))
+            if d.get("venda_imobilizado"):
+                res.add(Severidade.INFO, Area.CONTABIL, "Venda de bens do ativo imobilizado",
+                        f"Saídas de venda de ativo imobilizado de {brl(d['venda_imobilizado'])} no período.",
+                        "Baixar o bem no imobilizado (custo e depreciação acumulada) e apurar o ganho ou perda. "
+                        + ("No Simples, a venda de ativo imobilizado não compõe a receita bruta do DAS."
+                           if emp.regime == Regime.SIMPLES else
+                           "O ganho de capital integra a base do IRPJ/CSLL."),
+                        "LC 123/2006, art. 3º, § 1º; NBC TG 27 / CPC 27.", visivel_cliente=False)
+        elif t.coluna == "compras":
+            res.indicadores["Compras para revenda nos livros fiscais (CFOP)"] = brl(t.valor)
+            if d.get("entrada_imobilizado"):
+                res.add(Severidade.INFO, Area.CONTABIL, "Aquisições de ativo imobilizado no período",
+                        f"Entradas com CFOP de ativo imobilizado somam {brl(d['entrada_imobilizado'])}.",
+                        "Conferir o registro no imobilizado (e não como compra/estoque ou despesa), o início da "
+                        "depreciação e, quando houver financiamento, o passivo correspondente.",
+                        "NBC TG 27 / CPC 27.", visivel_cliente=False, valor_envolvido=d["entrada_imobilizado"])
+            if d.get("bonificacoes_recebidas"):
+                res.add(Severidade.INFO, Area.CONTABIL, "Bonificações recebidas de fornecedores",
+                        f"Entradas de bonificação, doação ou brinde somam {brl(d['bonificacoes_recebidas'])}.",
+                        "Verificar a contabilização (redução do custo das mercadorias ou receita) e o controle de "
+                        "estoque desses itens.", "NBC TG 16 / CPC 16.", visivel_cliente=False)
+
+
+# ---------------------------------------------------------------------------
 # Execução
 # ---------------------------------------------------------------------------
 
 
-def auditar(emp: Empresa, tab: pd.DataFrame, contas: dict[str, float] | None = None) -> Resultado:
+def auditar(
+    emp: Empresa, tab: pd.DataFrame, contas: dict[str, float] | None = None, totais: list[TotalPeriodo] | None = None
+) -> Resultado:
     contas = contas or {}
+    totais = totais or []
     res = Resultado()
     tab = tab.fillna(0.0)
     if emp.regime == Regime.SIMPLES:
         analisar_simples(emp, tab, res)
     else:
         analisar_lucro_real_presumido(emp, tab, res)
-    analisar_bancos(emp, tab, res)
+    analisar_bancos(emp, tab, res, totais)
     analisar_declarado(emp, tab, res)
-    analisar_compras(emp, tab, res)
+    analisar_totais_periodo(emp, tab, totais, res)
+    analisar_compras(emp, tab, res, totais)
     analisar_aplicacoes(emp, tab, contas, res)
     analisar_folha(emp, tab, res)
     analisar_demonstrativos(emp, tab, contas, res)

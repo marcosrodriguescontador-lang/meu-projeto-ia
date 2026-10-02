@@ -9,7 +9,7 @@ import pandas as pd
 
 from .leitores import competencia, normalizar
 from .layouts import SUFIXO_ANTERIOR
-from .modelos import Documento, Lancamento, TipoDocumento, tabela_mensal_vazia
+from .modelos import Documento, Lancamento, TipoDocumento, TotalPeriodo, tabela_mensal_vazia
 
 COLUNAS_DECLARADAS = {"faturamento_declarado", "imposto_declarado"}
 
@@ -29,6 +29,7 @@ class ResultadoConsolidacao:
     nao_operacionais: list[Lancamento] = field(default_factory=list)
     transferencias_internas: list[tuple[Lancamento, Lancamento]] = field(default_factory=list)
     contas_demonstrativos: dict[str, float] = field(default_factory=dict)
+    totais_periodo: list[TotalPeriodo] = field(default_factory=list)
 
 
 def e_nao_operacional(lanc: Lancamento, cnpj_empresa: str = "") -> bool:
@@ -76,6 +77,13 @@ def consolidar(documentos: list[Documento], ano: int, cnpj_empresa: str = "") ->
                         tabela.loc[comp, coluna] = valor  # declaração retificadora substitui a anterior
                     else:
                         tabela.loc[comp, coluna] += valor
+    totais: list[TotalPeriodo] = []
+    for doc in documentos:
+        for t in doc.totais:
+            if t.inicio == t.fim and t.inicio in tabela.index and t.coluna in tabela.columns:
+                tabela.loc[t.inicio, t.coluna] += t.valor  # relatório de um único mês
+            else:
+                totais.append(t)
     for coluna, serie in anteriores.items():
         for comp, valor in serie.items():
             if comp in tabela.index and coluna in tabela.columns and tabela.loc[comp, coluna] == 0:
@@ -103,4 +111,4 @@ def consolidar(documentos: list[Documento], ano: int, cnpj_empresa: str = "") ->
             for k, v in doc.contas.items():
                 contas.setdefault(k, v)
 
-    return ResultadoConsolidacao(tabela.round(2), nao_op, pares, contas)
+    return ResultadoConsolidacao(tabela.round(2), nao_op, pares, contas, totais)

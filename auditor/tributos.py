@@ -72,6 +72,16 @@ DESCRICAO_ANEXOS = {
     "V": "Anexo V - Serviços sujeitos ao Fator R",
 }
 
+# Parcela do ICMS (Anexos I e II) ou do ISS (Anexos III, IV e V) dentro do DAS, por faixa.
+# Na 6ª faixa ICMS/ISS são recolhidos fora do DAS (percentual zero).
+PARTILHA_ICMS_ISS = {
+    "I": [0.34, 0.34, 0.335, 0.335, 0.335, 0.0],
+    "II": [0.32, 0.32, 0.32, 0.32, 0.32, 0.0],
+    "III": [0.335, 0.32, 0.325, 0.325, 0.335, 0.0],
+    "IV": [0.445, 0.40, 0.40, 0.40, 0.40, 0.0],
+    "V": [0.14, 0.17, 0.19, 0.21, 0.235, 0.0],
+}
+
 # INSS patronal estimado para o Anexo IV (20% CPP + ~2% RAT); terceiros não incidem.
 ALIQUOTA_CPP_ANEXO_IV = 0.22
 

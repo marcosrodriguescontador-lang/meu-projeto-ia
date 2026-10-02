@@ -214,7 +214,8 @@ with aba_dados:
 with aba_audit:
     st.subheader("Executar auditoria")
     if st.button("Executar auditoria", type="primary"):
-        ss.resultado = auditar(empresa, ss.tabela, ss.contas)
+        totais = ss.consolidacao.totais_periodo if ss.consolidacao is not None else []
+        ss.resultado = auditar(empresa, ss.tabela, ss.contas, totais)
         ss.parecer = {}
 
     r = ss.resultado

@@ -258,7 +258,7 @@ PALAVRAS_TIPO = [
     (TipoDocumento.RENDIMENTOS, ["informe de rendimentos", "rendimentos financeiros", "comprovante de rendimentos"]),
     (TipoDocumento.EXTRATO_APLICACAO, ["aplicacao", "cdb", "fundo de investimento", "lci", "lca", "poupanca", "resgate"]),
     (TipoDocumento.FOLHA, ["folha de pagamento", "resumo da folha", "proventos", "inss segurado", "fgts", "pro-labore", "pro labore"]),
-    (TipoDocumento.FISCAL, ["pgdas", "extrato do simples", "dctf", "apuracao", "sped", "livro de registro", "efd", "darf"]),
+    (TipoDocumento.FISCAL, ["pgdas", "totais icms por natureza", "registro de entradas", "registro de saidas", "extrato do simples", "dctf", "apuracao", "sped", "livro de registro", "efd", "darf"]),
     (TipoDocumento.DEMONSTRATIVO, ["balanco patrimonial", "balancete", "demonstracao do resultado", "dre", "ativo circulante"]),
     (TipoDocumento.COMPRAS, ["compras", "entradas", "fornecedor", "notas de entrada"]),
     (TipoDocumento.FATURAMENTO, ["faturamento", "vendas", "saidas", "notas fiscais emitidas", "receita"]),
@@ -627,10 +627,18 @@ def ler_documento(nome: str, conteudo: bytes, tipo: TipoDocumento | None = None,
     return doc
 
 
+def _totais_layout(doc: Documento):
+    """Relatórios de período (anuais) com layout conhecido."""
+    from .layouts import questor_icms_natureza
+
+    return questor_icms_natureza(doc.texto, doc.nome)
+
+
 def extrair_dados(doc: Documento, ano: int) -> None:
     """(Re)extrai lançamentos, séries e contas conforme o tipo do documento."""
     doc.series = {}
     doc.contas = {}
+    doc.totais = []
     tipo = doc.tipo
 
     if tipo in (TipoDocumento.EXTRATO_CC, TipoDocumento.EXTRATO_APLICACAO, TipoDocumento.RENDIMENTOS):
@@ -652,6 +660,10 @@ def extrair_dados(doc: Documento, ano: int) -> None:
             doc.series.update(rend)
         else:
             doc.series = _series_rendimentos(doc, ano)
+    elif tipo in (TipoDocumento.FATURAMENTO, TipoDocumento.COMPRAS, TipoDocumento.FISCAL, TipoDocumento.OUTRO) and (
+        totais := _totais_layout(doc)
+    ):
+        doc.totais = totais
     elif tipo == TipoDocumento.FOLHA:
         doc.series = _series_folha(doc.texto, doc.tabelas, ano)
     elif tipo == TipoDocumento.FISCAL:
@@ -669,7 +681,7 @@ def extrair_dados(doc: Documento, ano: int) -> None:
     elif tipo == TipoDocumento.DEMONSTRATIVO:
         doc.contas = extrair_contas(doc.texto)
 
-    if tipo != TipoDocumento.OUTRO and not doc.series and not doc.contas and not doc.lancamentos:
+    if tipo != TipoDocumento.OUTRO and not doc.series and not doc.contas and not doc.lancamentos and not doc.totais:
         doc.avisos.append(
             "Nenhum valor foi reconhecido automaticamente. Confira o tipo do documento, use a leitura com IA "
             "ou digite os valores na tabela mensal."

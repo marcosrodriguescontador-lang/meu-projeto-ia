@@ -65,6 +65,18 @@ class Lancamento:
 
 
 @dataclass
+class TotalPeriodo:
+    """Total de um período com vários meses (ex.: livro fiscal anual), sem detalhe mensal."""
+
+    coluna: str
+    inicio: str  # "AAAA-MM"
+    fim: str  # "AAAA-MM"
+    valor: float
+    documento: str = ""
+    detalhe: dict[str, float] = field(default_factory=dict)
+
+
+@dataclass
 class Documento:
     nome: str
     tipo: TipoDocumento
@@ -75,6 +87,7 @@ class Documento:
     series: dict[str, dict[str, float]] = field(default_factory=dict)
     # Contas/valores encontrados em demonstrativos (ex.: "caixa": 1234.5)
     contas: dict[str, float] = field(default_factory=dict)
+    totais: list[TotalPeriodo] = field(default_factory=list)
     avisos: list[str] = field(default_factory=list)
 
 
