@@ -64,7 +64,8 @@ with st.sidebar:
     nome = st.text_input("Razão social")
     cnpj = st.text_input("CNPJ")
     uf = st.text_input("UF", max_chars=2)
-    ano = st.number_input("Ano analisado", min_value=2018, max_value=2100, value=date.today().year, step=1)
+    ano = st.number_input("Ano analisado", min_value=2018, max_value=2100, value=date.today().year - 1, step=1,
+                          help="Ano-calendário dos documentos (ex.: 2025 para o balanço e os extratos de 2025).")
     regime = st.selectbox("Regime tributário", list(Regime), format_func=lambda r: r.value)
     atividade = st.selectbox("Atividade principal", list(Atividade), format_func=lambda a: a.value)
     anexo = "I"
@@ -99,6 +100,27 @@ if (ASSETS / "logo_branco.png").exists():
         </div>""",
         unsafe_allow_html=True,
     )
+def ano_dos_documentos() -> int | None:
+    """Ano que mais aparece nos valores extraídos dos documentos."""
+    contagem: dict[int, int] = {}
+    for d in ss.docs.values():
+        for serie in d.series.values():
+            for comp in serie:
+                contagem[int(comp[:4])] = contagem.get(int(comp[:4]), 0) + 1
+        for t in d.totais:
+            contagem[int(t.inicio[:4])] = contagem.get(int(t.inicio[:4]), 0) + 12
+    return max(contagem, key=contagem.get) if contagem else None
+
+
+def consolidar_documentos() -> None:
+    res = consolidar(list(ss.docs.values()), int(ano), cnpj, nome)
+    ss.consolidacao, ss.tabela_base, ss.contas_base, ss.resultado = res, res.tabela, dict(res.contas_demonstrativos), None
+    ss.tabela, ss.contas = res.tabela, dict(res.contas_demonstrativos)
+    ss.ano_consolidado = int(ano)
+    ss.pop("editor_tabela", None)
+    ss.pop("editor_contas", None)
+
+
 st.title("Auditor Contábil, Fiscal e Tributário")
 st.caption("Confronta faturamento, bancos, aplicações, compras, folha e demonstrativos e gera relatórios interno e para o cliente.")
 
@@ -164,11 +186,12 @@ with aba_docs:
                                  use_container_width=True, hide_index=True)
 
     if ss.docs and st.button("Consolidar documentos na tabela mensal ➜", type="primary"):
-        res = consolidar(list(ss.docs.values()), int(ano), cnpj, nome)
-        ss.consolidacao, ss.tabela_base, ss.contas_base, ss.resultado = res, res.tabela, dict(res.contas_demonstrativos), None
-        ss.pop("editor_tabela", None)
-        ss.pop("editor_contas", None)
-        st.success("Pronto! Confira os valores na aba 2. Dados mensais.")
+        consolidar_documentos()
+        st.success("Pronto! Confira os valores na aba 2. Dados mensais e depois execute a auditoria na aba 3.")
+    ano_docs = ano_dos_documentos()
+    if ano_docs and ano_docs != int(ano):
+        st.warning(f"Os documentos parecem ser de **{ano_docs}**, mas o ano analisado (barra lateral) é **{int(ano)}**. "
+                   f"Ajuste o campo **Ano analisado** para {ano_docs}.")
 
 # ---------------------------------------------------------------------------
 # 2. Dados mensais
@@ -179,8 +202,11 @@ with aba_dados:
     st.write("Confira e corrija os valores. Você pode digitar diretamente nas células, inclusive quando não tiver "
              "o documento. O ano anterior serve para calcular a RBT12 e o Fator R do Simples.")
     if ss.tabela_base is None or str(int(ano)) not in ss.tabela_base.index[-1]:
-        ss.tabela_base = tabela_mensal_vazia(int(ano))
-        ss.pop("editor_tabela", None)
+        if ss.docs:
+            consolidar_documentos()  # ano mudou: refaz a tabela a partir dos documentos
+        else:
+            ss.tabela_base = tabela_mensal_vazia(int(ano))
+            ss.pop("editor_tabela", None)
     exibir = ss.tabela_base.rename(columns=DESCRICAO_COLUNAS)
     config = {c: st.column_config.NumberColumn(c, format="%.2f", min_value=0.0) for c in exibir.columns}
     editada = st.data_editor(exibir, column_config=config, use_container_width=True, height=600, key="editor_tabela")
@@ -217,7 +243,14 @@ with aba_dados:
 
 with aba_audit:
     st.subheader("Executar auditoria")
+    if ss.docs and ss.get("ano_consolidado") != int(ano) and ss.resultado is None:
+        st.info("Os documentos ainda não foram consolidados para este ano; isso será feito automaticamente.")
     if st.button("Executar auditoria", type="primary"):
+        if ss.docs and (ss.consolidacao is None or ss.get("ano_consolidado") != int(ano)):
+            consolidar_documentos()
+        if not (ss.tabela != 0).any().any() and not ss.contas:
+            st.warning("A tabela mensal está vazia: anexe os documentos na aba 1 (e confira o **Ano analisado**) "
+                       "ou digite os valores na aba 2.")
         totais = ss.consolidacao.totais_periodo if ss.consolidacao is not None else []
         ss.resultado = auditar(empresa, ss.tabela, ss.contas, totais)
         ss.parecer = {}
