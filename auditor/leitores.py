@@ -316,13 +316,36 @@ def _ano_do_texto(texto: str, ano_padrao: int) -> int:
     return ano_padrao
 
 
+RE_SALDO = re.compile(r"s\s?a\s?l\s?d\s?o")
+
+
+def _convencao_sinal(texto: str) -> str:
+    """Como o extrato indica débitos: 'cd' (sufixo C/D, ex.: Banco do Brasil), 'sinal' (valor negativo,
+    ex.: Santander) ou 'palavras' (sem indicação; decide pelo histórico)."""
+    cd = sinal = 0
+    for m in RE_VALOR.finditer(texto):
+        if m.group(2):
+            cd += 1
+        elif "-" in m.group(1) or "(" in m.group(1):
+            sinal += 1
+    if cd >= 3 and cd >= sinal:
+        return "cd"
+    if sinal >= 3:
+        return "sinal"
+    return "palavras"
+
+
 def lancamentos_de_texto(texto: str, nome: str, ano_padrao: int) -> list[Lancamento]:
     ano = _ano_do_texto(texto, ano_padrao)
-    lancs = []
+    convencao = _convencao_sinal(texto)
+    lancs: list[Lancamento] = []
+    ultimo: Lancamento | None = None
     for linha in texto.splitlines():
-        if "saldo" in normalizar(linha):
+        n = normalizar(linha)
+        if RE_SALDO.search(n):
+            ultimo = None
             continue
-        d = None
+        d, resto = None, ""
         m = RE_DATA_COMPLETA.match(linha.strip())
         if m:
             d = parse_data(m.group(0))
@@ -332,21 +355,27 @@ def lancamentos_de_texto(texto: str, nome: str, ano_padrao: int) -> list[Lancame
             if m:
                 d = parse_data(m.group(0), ano)
                 resto = linha[m.end():]
-        if not d:
-            continue
-        valores = list(RE_VALOR.finditer(resto))
-        if not valores:
+        valores = list(RE_VALOR.finditer(resto)) if d else []
+        if not d or not valores:
+            # Linha de complemento do histórico (nome/CPF/CNPJ do pagador na linha de baixo).
+            if ultimo is not None and linha.strip() and len(ultimo.descricao) < 200:
+                ultimo.descricao = f"{ultimo.descricao} | {linha.strip()}"
             continue
         v = valores[0]
-        bruto = v.group(1) + (v.group(2) or "")
-        valor = parse_valor(bruto)
+        if resto[v.end():].lstrip().startswith("*"):
+            ultimo = None  # depósito bloqueado (BB): informativo, entra depois quando liberado
+            continue
+        valor = parse_valor(v.group(1) + (v.group(2) or ""))
         if valor is None or valor == 0:
             continue
         desc = resto[: v.start()].strip()
-        explicito = v.group(2) or "-" in v.group(1) or "(" in v.group(1)
-        if not explicito:
+        if convencao == "cd" and not v.group(2):
+            ultimo = None
+            continue  # em extratos C/D, valor sem C/D não é lançamento
+        if convencao == "palavras" and not (v.group(2) or "-" in v.group(1) or "(" in v.group(1)):
             valor = abs(valor) * _sinal_por_descricao(desc)
-        lancs.append(Lancamento(d, desc, valor, nome))
+        ultimo = Lancamento(d, desc, valor, nome)
+        lancs.append(ultimo)
     return lancs
 
 
@@ -717,8 +746,12 @@ def extrair_dados(doc: Documento, ano: int) -> None:
 
     if tipo in (TipoDocumento.EXTRATO_CC, TipoDocumento.EXTRATO_APLICACAO, TipoDocumento.RENDIMENTOS):
         if not doc.lancamentos:
-            for df in doc.tabelas:
-                doc.lancamentos.extend(lancamentos_de_tabela(df, doc.nome, ano))
+            # Em PDF o texto é mais fiel que as tabelas detectadas (pega o histórico de 2 linhas).
+            if doc.nome.lower().endswith((".pdf", ".docx")) and doc.texto:
+                doc.lancamentos = lancamentos_de_texto(doc.texto, doc.nome, ano)
+            if not doc.lancamentos:
+                for df in doc.tabelas:
+                    doc.lancamentos.extend(lancamentos_de_tabela(df, doc.nome, ano))
             if not doc.lancamentos and doc.texto:
                 doc.lancamentos = lancamentos_de_texto(doc.texto, doc.nome, ano)
         if tipo == TipoDocumento.EXTRATO_CC:

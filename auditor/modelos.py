@@ -129,6 +129,7 @@ COLUNAS_MENSAIS = [
     "rendimentos_aplicacao",
     "irrf_aplicacao",
     "imposto_declarado",
+    "retiradas_titular",
 ]
 
 DESCRICAO_COLUNAS = {
@@ -144,6 +145,7 @@ DESCRICAO_COLUNAS = {
     "rendimentos_aplicacao": "Rendimentos de aplicação",
     "irrf_aplicacao": "IRRF sobre aplicação",
     "imposto_declarado": "Imposto declarado/pago (DAS ou DARFs)",
+    "retiradas_titular": "Transferências ao titular/sócios (saídas bancárias)",
 }
 
 

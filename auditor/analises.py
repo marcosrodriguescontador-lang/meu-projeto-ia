@@ -314,6 +314,17 @@ def analisar_bancos(emp: Empresa, tab: pd.DataFrame, res: Resultado, totais: lis
                 "Solicitar ao cliente os extratos de todas as contas correntes e aplicações do período.",
                 visivel_cliente=True)
         return
+    com_banco = [m for m in meses if t.loc[m, "creditos_bancarios"] > 0 or t.loc[m, "debitos_bancarios"] > 0]
+    faltando = [m for m in meses if m not in com_banco and receita_base(tab)[m] > 0]
+    if faltando:
+        res.add(Severidade.INFO, Area.FINANCEIRO, "Extratos bancários incompletos",
+                f"Não há extratos para {len(faltando)} mês(es) com faturamento: "
+                f"{', '.join(mes_extenso(m) for m in faltando)}. O confronto com os bancos considera só os meses "
+                "com extrato.",
+                "Solicitar ao cliente os extratos de todas as contas (correntes e aplicações) dos meses faltantes.",
+                visivel_cliente=True)
+    t = t.loc[com_banco]
+    meses = com_banco
     receitas = receita_base(tab).loc[meses]
     operacionais = (t["creditos_bancarios"] - t["creditos_nao_operacionais"]).clip(lower=0)
     conc = pd.DataFrame({
@@ -329,7 +340,7 @@ def analisar_bancos(emp: Empresa, tab: pd.DataFrame, res: Resultado, totais: lis
     res.conciliacao_bancaria = conc
 
     total_fat, total_op = float(receitas.sum()), float(operacionais.sum())
-    res.indicadores["Entradas operacionais nos bancos (ano)"] = brl(total_op)
+    res.indicadores[f"Entradas operacionais nos bancos ({len(meses)} mês(es) com extrato)"] = brl(total_op)
 
     sem_fat = conc[(conc["Faturamento"] == 0) & (conc["Entradas operacionais"] > 0)]
     if len(sem_fat):
@@ -361,9 +372,9 @@ def analisar_bancos(emp: Empresa, tab: pd.DataFrame, res: Resultado, totais: lis
                 "Boas práticas de controle interno; NBC TG Estrutura Conceitual.", visivel_cliente=True)
 
     if total_fat > 0:
-        res.indicadores["Entradas operacionais / faturamento (ano)"] = pct(total_op / total_fat)
+        res.indicadores["Entradas operacionais / faturamento (meses com extrato)"] = pct(total_op / total_fat)
 
-    if emp.regime == Regime.SIMPLES:
+    if emp.regime == Regime.SIMPLES and len(meses) == 12:  # regras anuais exigem o ano completo
         ingressos = float(t["creditos_bancarios"].sum())
         despesas = float(t["debitos_bancarios"].sum())
         compras = float(t["compras"].sum()) or (total_no_ano(totais or [], "compras", emp.ano_referencia) or 0.0)
@@ -840,6 +851,22 @@ def analisar_balanco_dre(emp: Empresa, tab: pd.DataFrame, contas: dict[str, floa
                     "anexados; sem o faturamento do ano anterior completo a RBT12 é proporcionalizada.)",
                     "ITG 1000; NBC TG 00 (regime de competência).", visivel_cliente=False,
                     valor_envolvido=abs(impostos_dre - das))
+
+    meses = meses_do_ano(emp.ano_referencia)
+    retiradas = float(tab.loc[meses, "retiradas_titular"].sum())
+    if retiradas > 0:
+        pro_labore = float(tab.loc[meses, "pro_labore"].sum()) or abs(contas.get("pro_labore", 0.0))
+        dist = lucro_dre - lucro_bal if (lucro_dre is not None and lucro_bal is not None) else None
+        comparacao = ""
+        if dist and dist > 0:
+            comparacao = f" A diferença entre o resultado da DRE e o lucro do exercício no balanço é de {brl(dist)}."
+        res.add(Severidade.MEDIA, Area.CONTABIL, "Transferências bancárias para o titular/sócios",
+                f"Os extratos mostram {brl(retiradas)} transferidos para o titular/sócios no ano "
+                f"(pró-labore registrado: {brl(pro_labore)}).{comparacao}",
+                "Classificar cada retirada como pró-labore (com INSS e IRRF na folha) ou distribuição de lucros "
+                "(com recibo e lastro em lucros apurados). Retiradas sem classificação podem ser tratadas pelo "
+                "fisco como remuneração, com incidência de INSS, ou como omissão na contabilidade.",
+                "LC 123/2006, art. 14; Lei 8.212/91, art. 28, III; ITG 1000.", valor_envolvido=retiradas)
 
     rec_fin, aplic = abs(contas.get("receitas_financeiras", 0.0)), abs(contas.get("aplicacoes", 0.0))
     if rec_fin and aplic and rec_fin / aplic > 0.20:

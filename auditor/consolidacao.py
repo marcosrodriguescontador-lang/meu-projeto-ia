@@ -20,6 +20,8 @@ PALAVRAS_NAO_OPERACIONAIS = [
     "capital de giro", "credito pessoal", "cdc ", "estorno", "devolucao", "devol ", "aporte",
     "integralizacao", "mutuo", "antecipacao", "desconto de duplicata", "desconto de recebiveis",
     "cheque devolvido", "credito em conta corrente garantida", "cheque especial", "limite",
+    "rende facil", "contamax", "brasilcap", "capitaliz", "aplicacao automatica", "resg aplic", "bb rf",
+    "transferencia programada",
 ]
 
 
@@ -30,16 +32,28 @@ class ResultadoConsolidacao:
     transferencias_internas: list[tuple[Lancamento, Lancamento]] = field(default_factory=list)
     contas_demonstrativos: dict[str, float] = field(default_factory=dict)
     totais_periodo: list[TotalPeriodo] = field(default_factory=list)
+    retiradas_titular: list[Lancamento] = field(default_factory=list)
 
 
-def e_nao_operacional(lanc: Lancamento, cnpj_empresa: str = "") -> bool:
+def e_nao_operacional(lanc: Lancamento, cnpj_empresa: str = "", nome_empresa: str = "") -> bool:
     desc = normalizar(lanc.descricao)
     if any(p in desc for p in PALAVRAS_NAO_OPERACIONAIS):
         return True
-    raiz = "".join(c for c in cnpj_empresa if c.isdigit())[:8]
-    if raiz and raiz in "".join(c for c in desc if c.isdigit()):
+    if _cnpj_no_historico(lanc, cnpj_empresa):
         return True  # crédito vindo do próprio CNPJ (outra conta da empresa)
+    if _nome_no_historico(lanc, nome_empresa):
+        return True  # transferência da própria empresa ou do titular (nome no histórico)
     return False
+
+
+def _cnpj_no_historico(lanc: Lancamento, cnpj_empresa: str) -> bool:
+    raiz = "".join(c for c in cnpj_empresa if c.isdigit())[:8]
+    return bool(raiz) and raiz in "".join(c for c in lanc.descricao if c.isdigit())
+
+
+def _nome_no_historico(lanc: Lancamento, nome_empresa: str) -> bool:
+    palavras = [p for p in normalizar(nome_empresa).split() if len(p) > 2][:2]
+    return len(palavras) == 2 and " ".join(palavras) in normalizar(lanc.descricao)
 
 
 def transferencias_entre_contas(extratos: list[Documento], tolerancia_dias: int = 2) -> list[tuple[Lancamento, Lancamento]]:
@@ -61,7 +75,7 @@ def transferencias_entre_contas(extratos: list[Documento], tolerancia_dias: int 
     return pares
 
 
-def consolidar(documentos: list[Documento], ano: int, cnpj_empresa: str = "") -> ResultadoConsolidacao:
+def consolidar(documentos: list[Documento], ano: int, cnpj_empresa: str = "", nome_empresa: str = "") -> ResultadoConsolidacao:
     tabela = tabela_mensal_vazia(ano)
     anteriores: dict[str, dict[str, float]] = defaultdict(dict)
     for doc in documentos:
@@ -93,10 +107,22 @@ def consolidar(documentos: list[Documento], ano: int, cnpj_empresa: str = "") ->
     pares = transferencias_entre_contas(extratos)
     ids_transferencia = {id(e) for _, e in pares}
 
+    # Saídas para o titular/sócios (nome da empresa no histórico), exceto transferências entre contas próprias.
+    ids_saida_interna = {id(s) for s, _ in pares}
+    retiradas: list[Lancamento] = []
+    for doc in extratos:
+        for l in doc.lancamentos:
+            if l.valor < 0 and id(l) not in ids_saida_interna and _nome_no_historico(l, nome_empresa) \
+                    and not _cnpj_no_historico(l, cnpj_empresa):
+                retiradas.append(l)
+                comp = competencia(l.data)
+                if comp in tabela.index:
+                    tabela.loc[comp, "retiradas_titular"] += abs(l.valor)
+
     nao_op: list[Lancamento] = []
     for doc in extratos:
         for l in doc.lancamentos:
-            if l.valor > 0 and (id(l) in ids_transferencia or e_nao_operacional(l, cnpj_empresa)):
+            if l.valor > 0 and (id(l) in ids_transferencia or e_nao_operacional(l, cnpj_empresa, nome_empresa)):
                 nao_op.append(l)
     soma: dict[str, float] = defaultdict(float)
     for l in nao_op:
@@ -111,4 +137,4 @@ def consolidar(documentos: list[Documento], ano: int, cnpj_empresa: str = "") ->
             for k, v in doc.contas.items():
                 contas.setdefault(k, v)
 
-    return ResultadoConsolidacao(tabela.round(2), nao_op, pares, contas, totais)
+    return ResultadoConsolidacao(tabela.round(2), nao_op, pares, contas, totais, retiradas)

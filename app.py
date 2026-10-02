@@ -164,7 +164,7 @@ with aba_docs:
                                  use_container_width=True, hide_index=True)
 
     if ss.docs and st.button("Consolidar documentos na tabela mensal ➜", type="primary"):
-        res = consolidar(list(ss.docs.values()), int(ano), cnpj)
+        res = consolidar(list(ss.docs.values()), int(ano), cnpj, nome)
         ss.consolidacao, ss.tabela_base, ss.contas_base, ss.resultado = res, res.tabela, dict(res.contas_demonstrativos), None
         ss.pop("editor_tabela", None)
         ss.pop("editor_contas", None)
@@ -204,6 +204,9 @@ with aba_dados:
                 st.dataframe(pd.DataFrame([
                     {"Data saída": s.data, "Conta origem": s.documento, "Data entrada": e.data, "Conta destino": e.documento,
                      "Valor": e.valor} for s, e in cons.transferencias_internas]), hide_index=True, use_container_width=True)
+        if cons.retiradas_titular:
+            with st.expander(f"Saídas para o titular/sócios ({len(cons.retiradas_titular)})"):
+                st.dataframe(pd.DataFrame([vars(l) for l in cons.retiradas_titular]), hide_index=True, use_container_width=True)
         if cons.nao_operacionais:
             with st.expander(f"Entradas classificadas como não operacionais ({len(cons.nao_operacionais)})"):
                 st.dataframe(pd.DataFrame([vars(l) for l in cons.nao_operacionais]), hide_index=True, use_container_width=True)

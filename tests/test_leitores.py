@@ -188,3 +188,51 @@ def test_indices_e_balanco_x_dre():
     idx = dict(zip(r.indices["Índice"], r.indices["Valor"]))
     assert idx["Liquidez corrente"] == "2,40"
     assert any(a.titulo.startswith("Resultado da DRE diferente") for a in r.achados)
+
+
+EXTRATO_BB = """Período do extrato 12 / 2025
+26/11/2025 0000 00000000 Saldo Anterior 0,00 C
+01/12/2025 8763 14849911 Depósito bloquead.1d útil 1.195.500.952 3.000,00 * 0,00 C
+02/12/2025 0000 00000351 BB Rende Fácil 9.903 3.000,00 D
+Rende Facil
+02/12/2025 0000 10846631 Dep cheque caixa agencia 1.195.500.952 3.000,00 C 0,00 C
+30/12/2025 0000 14397821 Pix - Recebido 300.959.018.997.962 10.000,00 C
+30/12 09:59 12345678000100 EMPRESA TESTE
+31/12/2025 0000 00000999 S A L D O 0,00 C
+"""
+
+EXTRATO_SANTANDER = """Períodos:01/05/2025 a 31/05/2025
+02/05/2025 SALDO ANTERIOR 0,00
+02/05/2025 TARIFA PIX RECEBIDO QR CHECKOUT 000000 -1,97
+02/05/2025 PAGAMENTO CARTAO DE DEBITO GETNET-ELO DEBITO 469247 86,68
+02/05/2025 PIX ENVIADO EMPRESA TESTE LTDA 052032 -1.000,00
+02/05/2025 APLICACAO CONTAMAX 000000 -1.767,05 0,00
+07/05/2025 RESGATE CONTAMAX AUTOMATICO 000000 14.995,66 0,00
+"""
+
+
+def test_extrato_banco_do_brasil():
+    lancs = lancamentos_de_texto(EXTRATO_BB, "bb.pdf", 2025)
+    assert [l.valor for l in lancs] == [-3000.0, 3000.0, 10000.0]  # bloqueado e saldos ignorados
+    assert "12345678000100" in lancs[-1].descricao  # complemento da linha de baixo
+
+
+def test_extrato_santander_sinal_negativo():
+    lancs = lancamentos_de_texto(EXTRATO_SANTANDER, "santander.pdf", 2025)
+    assert [l.valor for l in lancs] == [-1.97, 86.68, -1000.0, -1767.05, 14995.66]
+
+
+def test_classificacao_nao_operacional_e_retiradas():
+    from auditor.consolidacao import consolidar
+    from auditor.leitores import extrair_dados
+    from auditor.modelos import Documento
+
+    docs = []
+    for nome, texto in (("bb.pdf", EXTRATO_BB), ("santander.pdf", EXTRATO_SANTANDER)):
+        d = Documento(nome, TipoDocumento.EXTRATO_CC, texto=texto)
+        extrair_dados(d, 2025)
+        docs.append(d)
+    c = consolidar(docs, 2025, "12.345.678/0001-00", "EMPRESA TESTE LTDA")
+    nao_op = sorted(l.valor for l in c.nao_operacionais)
+    assert nao_op == [10000.0, 14995.66]  # Pix da própria empresa e resgate de aplicação
+    assert c.tabela.loc["2025-05", "retiradas_titular"] == 1000.0
