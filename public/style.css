@@ -353,3 +353,27 @@ dialog.janela > form, dialog.janela > .janela-conteudo { display: flex; flex-dir
 }
 #area-impressao { display: none; }
 @media print { body.imprimindo #area-impressao { display: block; } }
+
+/* Contrato --------------------------------------------------------------- */
+.contrato { font-family: Georgia, "Times New Roman", serif; font-size: .95rem; line-height: 1.5; }
+.contrato h2 { font-size: 1.05rem; text-align: center; flex: 1; }
+.contrato h3 { font-size: .92rem; margin: 1rem 0 .3rem; }
+.justificado { text-align: justify; }
+.aviso-modelo { border: 2px dashed var(--perigo); color: var(--perigo); font-weight: 700; text-align: center; padding: .3rem; margin-bottom: .8rem;
+  font-family: system-ui, sans-serif; font-size: .85rem; }
+.contrato .assinaturas { margin-top: 3rem; }
+.contrato .assinaturas div { padding-top: .4rem; }
+@media print {
+  .contrato { page: contrato; font-size: 10.5pt; }
+  .contrato h3 { break-after: avoid; }
+  .contrato tfoot { display: table-row-group; }
+  .contrato p { orphans: 3; widows: 3; }
+  .doc-tabela-wrap { overflow: visible; }
+  .contrato .assinaturas { break-inside: avoid; }
+}
+@page contrato {
+  size: A4;
+  margin: 18mm 16mm 20mm;
+  @bottom-right { content: "Página " counter(page) " de " counter(pages); font-size: 9pt; }
+  @bottom-left { content: "Modelo – revisar com advogado"; font-size: 8pt; color: #888; }
+}

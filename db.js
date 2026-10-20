@@ -174,6 +174,42 @@ CREATE TABLE IF NOT EXISTS duplicatas (
 );
 CREATE INDEX IF NOT EXISTS duplicatas_venc ON duplicatas (status, vencimento);
 CREATE INDEX IF NOT EXISTS duplicatas_nota ON duplicatas (nota_id);
+
+CREATE TABLE IF NOT EXISTS contratos (
+  id INTEGER PRIMARY KEY,
+  tipo TEXT NOT NULL CHECK (tipo IN ('venda', 'compra')),
+  data TEXT NOT NULL,
+  cliente_id INTEGER REFERENCES clientes(id),
+  pedido_id INTEGER REFERENCES pedidos(id),
+  parte_nome TEXT NOT NULL,
+  parte_documento TEXT NOT NULL,
+  parte_ie TEXT NOT NULL DEFAULT '',
+  parte_endereco TEXT NOT NULL DEFAULT '',
+  objeto TEXT NOT NULL DEFAULT '',
+  itens TEXT NOT NULL DEFAULT '[]',
+  valor INTEGER NOT NULL DEFAULT 0,
+  forma_pagamento TEXT NOT NULL DEFAULT 'Boleto',
+  condicao_tipo TEXT NOT NULL DEFAULT 'avista',
+  condicao_valor TEXT NOT NULL DEFAULT '',
+  local_entrega TEXT NOT NULL DEFAULT '',
+  prazo_entrega TEXT NOT NULL DEFAULT '',
+  vigencia_inicio TEXT,
+  vigencia_fim TEXT,
+  multa REAL NOT NULL DEFAULT 2,
+  juros REAL NOT NULL DEFAULT 1,
+  foro TEXT NOT NULL DEFAULT '',
+  receituario TEXT NOT NULL DEFAULT '',
+  defensivos INTEGER NOT NULL DEFAULT 1,
+  testemunha1_nome TEXT NOT NULL DEFAULT '',
+  testemunha1_cpf TEXT NOT NULL DEFAULT '',
+  testemunha2_nome TEXT NOT NULL DEFAULT '',
+  testemunha2_cpf TEXT NOT NULL DEFAULT '',
+  observacoes TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'rascunho' CHECK (status IN ('rascunho', 'vigente', 'encerrado', 'cancelado')),
+  criado_por INTEGER REFERENCES users(id),
+  criado_em TEXT NOT NULL DEFAULT (datetime('now')),
+  atualizado_em TEXT NOT NULL DEFAULT (datetime('now'))
+);
 `);
 
 export const get = (sql, ...p) => db.prepare(sql).get(...p);

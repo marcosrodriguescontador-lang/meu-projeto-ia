@@ -46,7 +46,7 @@ export function criarApp() {
 
   app.use('/api', (req, res) => res.status(404).json({ erro: 'Recurso não encontrado.' }));
   // Módulos de regras compartilhados com o navegador.
-  for (const arq of ['validacao.js', 'parcelas.js', 'extenso.js', 'chave-nfe.js']) {
+  for (const arq of ['validacao.js', 'parcelas.js', 'extenso.js', 'chave-nfe.js', 'contrato.js']) {
     app.get(`/lib/${arq}`, (req, res) => res.type('text/javascript').sendFile(path.join(import.meta.dirname, 'lib', arq)));
   }
   app.use(express.static(path.join(import.meta.dirname, 'public'), { index: 'index.html' }));
