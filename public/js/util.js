@@ -118,16 +118,18 @@ export function paraNumero(texto) {
 
 // Avisos rápidos ------------------------------------------------------------
 export function aviso(texto, tipo = 'ok') {
-  // Com uma janela aberta, o aviso vai dentro dela (senão ficaria atrás do fundo escuro).
-  const janela = [...document.querySelectorAll('dialog[open]')].pop();
-  let caixa = document.getElementById('avisos');
-  if (janela) {
-    caixa = janela.querySelector(':scope > .avisos') || h('div', { class: 'avisos', role: 'status', 'aria-live': 'polite' });
-    janela.append(caixa);
-  }
+  const caixa = document.getElementById('avisos');
   const el = h('div', { class: ['aviso', tipo === 'erro' && 'erro'] }, texto);
   caixa.append(el);
-  setTimeout(() => el.remove(), tipo === 'erro' ? 6000 : 3500);
+  // Popover fica na camada superior, acima de janelas abertas (reabrir traz para a frente).
+  if (caixa.showPopover) {
+    if (caixa.matches(':popover-open')) caixa.hidePopover();
+    caixa.showPopover();
+  }
+  setTimeout(() => {
+    el.remove();
+    if (!caixa.children.length && caixa.hidePopover && caixa.matches(':popover-open')) caixa.hidePopover();
+  }, tipo === 'erro' ? 6000 : 3500);
 }
 
 export function mensagem(tipo, ...conteudo) {

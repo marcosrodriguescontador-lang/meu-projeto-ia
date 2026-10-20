@@ -100,7 +100,8 @@ legend { font-weight: 700; color: var(--verde-texto); padding: 0 .4rem; }
 .msg.alerta { background: var(--alerta-claro); color: var(--alerta); border-color: #f0d68f; }
 .msg.info { background: var(--info-claro); color: var(--info); border-color: #b9d3ee; }
 .msg ul { margin: .3rem 0 0; padding-left: 1.2rem; }
-#avisos, dialog .avisos { position: fixed; z-index: 90; left: 50%; bottom: 1rem; transform: translateX(-50%); display: grid; gap: .5rem; width: min(92vw, 420px); }
+#avisos { inset: auto; margin: 0; padding: 0; border: 0; background: transparent; overflow: visible; color: inherit; }
+#avisos { position: fixed; z-index: 90; left: 50%; bottom: 1rem; transform: translateX(-50%); display: grid; gap: .5rem; width: min(92vw, 420px); }
 .aviso { padding: .8rem 1rem; border-radius: 8px; background: var(--verde-escuro); color: #fff; box-shadow: var(--sombra); }
 .aviso.erro { background: var(--perigo); }
 
@@ -277,7 +278,7 @@ dialog.janela > form, dialog.janela > .janela-conteudo { display: flex; flex-dir
 @media print {
   @page { size: A4; margin: 12mm; }
   body { background: #fff; font-size: 11pt; }
-  .topo, .menu, .fundo-menu, .fab, .nao-imprimir, #avisos, .avisos, .pular, .abas, .filtros, .paginacao { display: none !important; }
+  .topo, .menu, .fundo-menu, .fab, .nao-imprimir, #avisos, .pular, .abas, .filtros, .paginacao { display: none !important; }
   .corpo { display: block; }
   main { padding: 0; }
   .painel { box-shadow: none; border: 0; padding: 0; }

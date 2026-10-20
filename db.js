@@ -131,6 +131,23 @@ CREATE TABLE IF NOT EXISTS pedido_itens (
 );
 CREATE INDEX IF NOT EXISTS itens_pedido ON pedido_itens (pedido_id);
 CREATE INDEX IF NOT EXISTS itens_produto ON pedido_itens (produto_id);
+
+CREATE TABLE IF NOT EXISTS notas (
+  id INTEGER PRIMARY KEY,
+  pedido_id INTEGER NOT NULL REFERENCES pedidos(id),
+  chave TEXT NOT NULL UNIQUE,
+  numero INTEGER NOT NULL,
+  serie INTEGER NOT NULL,
+  data_emissao TEXT NOT NULL,
+  valor INTEGER NOT NULL,
+  data_entrega TEXT,
+  status TEXT NOT NULL DEFAULT 'emitida' CHECK (status IN ('emitida', 'cancelada')),
+  motivo_cancelamento TEXT NOT NULL DEFAULT '',
+  cancelada_em TEXT,
+  criado_por INTEGER REFERENCES users(id),
+  criado_em TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS notas_pedido_ativa ON notas (pedido_id) WHERE status = 'emitida';
 `);
 
 export const get = (sql, ...p) => db.prepare(sql).get(...p);
