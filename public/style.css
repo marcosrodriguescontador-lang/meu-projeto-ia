@@ -377,3 +377,7 @@ dialog.janela > form, dialog.janela > .janela-conteudo { display: flex; flex-dir
   @bottom-right { content: "Página " counter(page) " de " counter(pages); font-size: 9pt; }
   @bottom-left { content: "Modelo – revisar com advogado"; font-size: 8pt; color: #888; }
 }
+
+.bloco-linha { display: block; }
+.botoes.empilhados { flex-direction: column; align-items: stretch; }
+@media (max-width: 719px) { .botoes.empilhados { flex-direction: row; justify-content: flex-end; } }

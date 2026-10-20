@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { get, all, run, listar, termo } from '../db.js';
+import { get, all, run, listar, termo, buscaNumerica } from '../db.js';
 import { erro, texto, inteiro } from '../lib/http.js';
 import { exigir, encerrarSessoesDoUsuario } from '../lib/sessao.js';
 import { gerarHash } from '../lib/senha.js';
@@ -34,8 +34,10 @@ router.get('/colaboradores', admin, (req, res) => {
   const where = [];
   const params = [];
   if (req.query.busca) {
-    where.push("(nome LIKE ? ESCAPE '\\' OR email LIKE ? ESCAPE '\\' OR cpf LIKE ? ESCAPE '\\')");
-    params.push(termo(req.query.busca), termo(req.query.busca), termo(somenteDigitos(req.query.busca) || req.query.busca));
+    const dig = buscaNumerica(req.query.busca);
+    where.push(`(nome LIKE ? ESCAPE '\\' OR email LIKE ? ESCAPE '\\'${dig ? " OR cpf LIKE ? ESCAPE '\\'" : ''})`);
+    params.push(termo(req.query.busca), termo(req.query.busca));
+    if (dig) params.push(termo(dig));
   }
   if (req.query.perfil) { where.push('perfil = ?'); params.push(req.query.perfil); }
   if (req.query.ativo === '1' || req.query.ativo === '0') { where.push('ativo = ?'); params.push(Number(req.query.ativo)); }

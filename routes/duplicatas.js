@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { get, all, run, tx, db, listar, termo } from '../db.js';
+import { get, run, tx, db, listar, termo } from '../db.js';
 import { erro, texto, inteiro, dataIso, hojeIso } from '../lib/http.js';
 import { exigir } from '../lib/sessao.js';
 import { gerarParcelas } from '../lib/parcelas.js';

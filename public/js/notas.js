@@ -1,7 +1,7 @@
 // Notas fiscais: a emissão oficial é feita na Conta Azul Pro. Aqui ficam a ficha de emissão
 // (dados prontos para digitar), o registro da NF emitida e o controle das notas.
 import { api } from './api.js';
-import { h, anexar, limpar, icone, tabela, paginacao, abrirJanela, aviso, confirmar, debounce, selecao, entrada, campo,
+import { h, anexar, limpar, icone, tabela, paginacao, abrirJanela, aviso, debounce, selecao, entrada, campo,
   moeda, decimal, quantidade, data, hoje, etiqueta, imprimirJanela, copiarTexto, mensagem } from './util.js';
 import { obterEmpresa, cabecalhoDocumento, enderecoTexto, info } from './documentos.js';
 import { formatarCpfCnpj } from '/lib/validacao.js';
@@ -35,12 +35,11 @@ async function abaEmitir(el) {
     h('p', { class: 'suave' }, 'Pedidos aprovados que ainda não têm nota fiscal registrada.'),
     tabela([
       { titulo: 'Pedido', valor: (l) => `#${l.id}`, classe: 'nowrap' },
-      { titulo: 'Cliente', valor: (l) => l.cliente_nome, principal: true },
-      { titulo: 'Município', valor: (l) => (l.municipio ? `${l.municipio}/${l.uf}` : '') },
+      { titulo: 'Cliente', valor: (l) => [l.cliente_nome, l.municipio ? h('small', { class: 'suave bloco-linha' }, `${l.municipio}/${l.uf}`) : null], principal: true },
       { titulo: 'Data', valor: (l) => data(l.data) },
       { titulo: 'Vendedor', valor: (l) => l.vendedor_nome },
       { titulo: 'Total', valor: (l) => moeda(l.total), classe: 'num' },
-      { titulo: 'Ações', valor: (l) => h('div', { class: 'botoes' },
+      { titulo: 'Ações', valor: (l) => h('div', { class: 'botoes empilhados' },
         h('button', { type: 'button', class: 'btn pequeno', onClick: () => abrirFicha(l.id, recarregar) }, 'Ficha de emissão'),
         h('button', { type: 'button', class: 'btn pequeno primario', onClick: () => registrarNota(l, recarregar) }, 'Registrar NF emitida')) },
     ], linhas, { aoClicar: (l) => abrirFicha(l.id, recarregar), vazio: 'Nenhum pedido aprovado aguardando nota fiscal.' })));
@@ -144,7 +143,6 @@ async function abrirFicha(pedidoId, depois) {
 }
 
 export function textoFicha(f) {
-  const e = f.emitente;
   const d = f.destinatario;
   const cep = (c) => String(c || '').replace(/^(\d{5})(\d{3})$/, '$1-$2');
   const l = [

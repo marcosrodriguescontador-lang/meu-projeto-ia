@@ -242,6 +242,13 @@ export function listar({ select, from, where = [], params = [], ordem, pagina = 
 // Termo de busca para LIKE (escapa curingas).
 export const termo = (s) => `%${String(s ?? '').trim().replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
 
+// Dígitos de uma busca que parece CPF/CNPJ (só números e pontuação, ao menos 3 dígitos); senão, ''.
+export function buscaNumerica(s) {
+  const t = String(s ?? '').trim();
+  const d = t.replace(/\D/g, '');
+  return /^[\d.\-/\s]+$/.test(t) && d.length >= 3 ? d : '';
+}
+
 export function lerConfig() {
   const cfg = {};
   for (const { chave, valor } of all('SELECT chave, valor FROM config')) cfg[chave] = valor;

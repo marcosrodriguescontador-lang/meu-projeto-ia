@@ -50,6 +50,7 @@ export function criarApp() {
     app.get(`/lib/${arq}`, (req, res) => res.type('text/javascript').sendFile(path.join(import.meta.dirname, 'lib', arq)));
   }
   app.use(express.static(path.join(import.meta.dirname, 'public'), { index: 'index.html' }));
+  app.use((req, res) => res.status(404).type('text/plain; charset=utf-8').send('Página não encontrada. Acesse o endereço inicial do sistema.'));
 
   app.use((err, req, res, next) => {
     if (err instanceof ErroHttp) return res.status(err.status).json({ erro: err.message });

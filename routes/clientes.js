@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { get, run, listar, termo } from '../db.js';
+import { get, run, listar, termo, buscaNumerica } from '../db.js';
 import { erro, texto, inteiro, centavos } from '../lib/http.js';
 import { exigir } from '../lib/sessao.js';
 import { validarCpfCnpj, validarEmail, somenteDigitos, UFS } from '../lib/validacao.js';
@@ -32,7 +32,7 @@ router.get('/clientes', exigir('clientes_ver'), (req, res) => {
   const where = [];
   const params = [];
   if (req.query.busca) {
-    const dig = somenteDigitos(req.query.busca);
+    const dig = buscaNumerica(req.query.busca);
     where.push(`(nome LIKE ? ESCAPE '\\' OR municipio LIKE ? ESCAPE '\\'${dig ? " OR documento LIKE ? ESCAPE '\\'" : ''})`);
     params.push(termo(req.query.busca), termo(req.query.busca));
     if (dig) params.push(termo(dig));

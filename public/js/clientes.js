@@ -1,4 +1,4 @@
-import { h, etiqueta, moeda } from './util.js';
+import { etiqueta, moeda } from './util.js';
 import { paginaCadastro } from './cadastro.js';
 import { podeUsuario } from './estado.js';
 import { formatarCpfCnpj } from '/lib/validacao.js';
