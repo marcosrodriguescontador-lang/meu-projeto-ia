@@ -1,0 +1,18 @@
+# Serviço systemd do AGRO S – Controle Interno (Linux).
+# Ajuste User e WorkingDirectory e copie para /etc/systemd/system/agros-controle.service
+[Unit]
+Description=AGRO S - Controle Interno
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=agros
+WorkingDirectory=/opt/agros-controle
+ExecStart=/usr/bin/node --disable-warning=ExperimentalWarning server.js
+Restart=always
+RestartSec=5
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

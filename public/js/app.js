@@ -90,6 +90,11 @@ async function sair() {
   shell = null;
   location.hash = '';
   iniciar();
+
+// Instalação na tela inicial (o navegador só permite em conexão segura: https ou localhost).
+if ('serviceWorker' in navigator && window.isSecureContext) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
 }
 
 let rotaAtual = 0;
@@ -120,6 +125,16 @@ window.addEventListener('sessao-expirada', () => {
   shell = null;
   aviso('Sua sessão expirou. Entre novamente.', 'erro');
   iniciar();
+
+// Instalação na tela inicial (o navegador só permite em conexão segura: https ou localhost).
+if ('serviceWorker' in navigator && window.isSecureContext) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
 });
 
 iniciar();
+
+// Instalação na tela inicial (o navegador só permite em conexão segura: https ou localhost).
+if ('serviceWorker' in navigator && window.isSecureContext) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}

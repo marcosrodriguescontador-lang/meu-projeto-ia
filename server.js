@@ -8,6 +8,7 @@ if (fs.existsSync(arquivoEnv)) process.loadEnvFile(arquivoEnv);
 const { default: express } = await import('express');
 const { carregarUsuario, exigirLogin } = await import('./lib/sessao.js');
 const { ErroHttp } = await import('./lib/http.js');
+const { db } = await import('./db.js');
 const rotas = await import('./routes/index.js');
 
 export function criarApp() {
@@ -25,7 +26,7 @@ export function criarApp() {
       'Referrer-Policy': 'same-origin',
       'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
     });
-    if (req.secure) res.set('Strict-Transport-Security', 'max-age=31536000');
+    // Sem HSTS: ele faria o navegador exigir HTTPS também no endereço http da rede interna.
     next();
   });
 
@@ -40,6 +41,16 @@ export function criarApp() {
     }
     res.set('Cache-Control', 'no-store');
     next();
+  });
+
+  // Página simples para conferir se o servidor está no ar (sem dados sensíveis).
+  app.get('/status', (req, res) => {
+    let banco = 'ok';
+    try { db.prepare('SELECT 1').get(); } catch { banco = 'erro'; }
+    res.set('Cache-Control', 'no-store').status(banco === 'ok' ? 200 : 503).json({
+      sistema: 'AGRO S – Controle Interno', status: banco === 'ok' ? 'no ar' : 'com problema', banco,
+      horario: new Date().toISOString(), ativoHaMinutos: Math.floor(process.uptime() / 60),
+    });
   });
 
   rotas.montar(app, exigirLogin);
@@ -66,10 +77,18 @@ export function criarApp() {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === import.meta.filename) {
+  const app = criarApp();
   const porta = Number(process.env.PORT || 3000);
   const host = process.env.HOST || '0.0.0.0';
-  criarApp().listen(porta, host, () => {
+  app.listen(porta, host, () => {
     console.log(`AGRO S – Controle Interno rodando em http://localhost:${porta}`);
     if (!process.env.SMTP_HOST) console.log('SMTP não configurado: códigos de redefinição de senha aparecerão aqui no console.');
   });
+  // HTTPS opcional com certificado próprio (ver docs/INSTALACAO-SERVIDOR.md).
+  if (process.env.HTTPS_CERT_FILE && process.env.HTTPS_KEY_FILE) {
+    const https = await import('node:https');
+    const portaHttps = Number(process.env.HTTPS_PORT || 3443);
+    https.createServer({ cert: fs.readFileSync(process.env.HTTPS_CERT_FILE), key: fs.readFileSync(process.env.HTTPS_KEY_FILE) }, app)
+      .listen(portaHttps, host, () => console.log(`HTTPS ativo em https://localhost:${portaHttps}`));
+  }
 }

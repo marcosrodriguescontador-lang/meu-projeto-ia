@@ -72,8 +72,17 @@ trimestre e semestre, e as regras de permissão por perfil (inclusive pela API).
 ## Backup
 
 Todos os dados ficam no arquivo `data/agrocontrol.db`. Faça cópia diária com
-`npm run backup` (guarda os últimos 30 em `backup/`). Restauração: veja o guia de
-instalação.
+`npm run backup`, `backup.bat` (Windows) ou `backup.sh` (Linux): a cópia é datada, conferida
+e são mantidas as últimas 30 em `backup/`. Agendamento e restauração: veja o
+[guia de instalação](docs/INSTALACAO-SERVIDOR.md#restaurar-um-backup).
+
+## Outros comandos
+
+| Comando | Para que serve |
+|---|---|
+| `iniciar.bat` / `iniciar.sh` | Inicia o sistema (instala as dependências na primeira vez) |
+| `npm run testar-email -- voce@empresa.com.br` | Testa o envio de e-mail com o SMTP do `.env` |
+| `http://servidor:3000/status` | Mostra se o servidor está no ar (sem dados sensíveis) |
 
 ## Segurança
 
