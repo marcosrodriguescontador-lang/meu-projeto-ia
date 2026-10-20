@@ -89,6 +89,48 @@ CREATE TABLE IF NOT EXISTS produtos (
   ativo INTEGER NOT NULL DEFAULT 1,
   criado_em TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS pedidos (
+  id INTEGER PRIMARY KEY,
+  data TEXT NOT NULL,
+  vendedor_id INTEGER NOT NULL REFERENCES users(id),
+  cliente_id INTEGER NOT NULL REFERENCES clientes(id),
+  origem TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'Recebido' CHECK (status IN ('Recebido', 'Aprovado', 'Faturado', 'Cancelado')),
+  subtotal INTEGER NOT NULL DEFAULT 0,
+  desconto INTEGER NOT NULL DEFAULT 0,
+  frete INTEGER NOT NULL DEFAULT 0,
+  total INTEGER NOT NULL DEFAULT 0,
+  modalidade_frete TEXT NOT NULL DEFAULT '9',
+  forma_pagamento TEXT NOT NULL,
+  condicao_tipo TEXT NOT NULL CHECK (condicao_tipo IN ('avista', 'dias', 'datas')),
+  condicao_valor TEXT NOT NULL DEFAULT '',
+  data_entrega TEXT,
+  receituario TEXT NOT NULL DEFAULT '',
+  observacoes TEXT NOT NULL DEFAULT '',
+  motivo_cancelamento TEXT NOT NULL DEFAULT '',
+  criado_por INTEGER REFERENCES users(id),
+  aprovado_por INTEGER REFERENCES users(id),
+  aprovado_em TEXT,
+  criado_em TEXT NOT NULL DEFAULT (datetime('now')),
+  atualizado_em TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS pedidos_data ON pedidos (data);
+CREATE INDEX IF NOT EXISTS pedidos_vendedor ON pedidos (vendedor_id, data);
+CREATE INDEX IF NOT EXISTS pedidos_status ON pedidos (status);
+
+CREATE TABLE IF NOT EXISTS pedido_itens (
+  id INTEGER PRIMARY KEY,
+  pedido_id INTEGER NOT NULL REFERENCES pedidos(id) ON DELETE CASCADE,
+  produto_id INTEGER NOT NULL REFERENCES produtos(id),
+  descricao TEXT NOT NULL,
+  unidade TEXT NOT NULL,
+  quantidade REAL NOT NULL,
+  preco_unit INTEGER NOT NULL,
+  total INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS itens_pedido ON pedido_itens (pedido_id);
+CREATE INDEX IF NOT EXISTS itens_produto ON pedido_itens (produto_id);
 `);
 
 export const get = (sql, ...p) => db.prepare(sql).get(...p);

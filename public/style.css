@@ -300,3 +300,18 @@ dialog.janela > form, dialog.janela > .janela-conteudo { display: flex; flex-dir
 .previa-logo { max-height: 80px; width: auto; border: 1px solid var(--borda); border-radius: 8px; padding: .3rem; background: #fff; }
 .grade > h3 { margin: .6rem 0 0; padding-top: .4rem; border-top: 1px solid var(--borda); }
 .grade > h3:first-child { border-top: 0; padding-top: 0; margin-top: 0; }
+
+/* Buscador com sugestões */
+.buscador { position: relative; }
+.sugestoes { position: absolute; z-index: 60; left: 0; right: 0; top: 100%; margin: 2px 0 0; padding: .3rem; list-style: none;
+  background: #fff; border: 1px solid var(--borda); border-radius: 8px; box-shadow: var(--sombra); max-height: 280px; overflow-y: auto; }
+.sugestoes li { padding: .55rem .6rem; border-radius: 6px; cursor: pointer; display: grid; min-height: 44px; }
+.sugestoes li small { color: var(--texto-suave); }
+.sugestoes li[aria-selected="true"], .sugestoes li:hover { background: var(--verde-claro); }
+.sugestoes li.nada { cursor: default; color: var(--texto-suave); }
+.parcelas-previa { font-size: .9rem; color: var(--texto-suave); }
+.resumo-linha { display: flex; justify-content: space-between; gap: 1rem; }
+.doc-empresa { flex: 1; min-width: 200px; font-size: .85rem; }
+.doc-titulo { text-align: right; }
+.doc-titulo h2 { margin: 0; font-size: 1.15rem; }
+.doc-grade { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: .2rem 1rem; }

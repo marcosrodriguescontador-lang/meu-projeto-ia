@@ -45,7 +45,10 @@ export function criarApp() {
   rotas.montar(app, exigirLogin);
 
   app.use('/api', (req, res) => res.status(404).json({ erro: 'Recurso não encontrado.' }));
-  app.get('/lib/validacao.js', (req, res) => res.sendFile(path.join(import.meta.dirname, 'lib', 'validacao.js')));
+  // Módulos de regras compartilhados com o navegador.
+  for (const arq of ['validacao.js', 'parcelas.js', 'extenso.js', 'chave-nfe.js']) {
+    app.get(`/lib/${arq}`, (req, res) => res.type('text/javascript').sendFile(path.join(import.meta.dirname, 'lib', arq)));
+  }
   app.use(express.static(path.join(import.meta.dirname, 'public'), { index: 'index.html' }));
 
   app.use((err, req, res, next) => {

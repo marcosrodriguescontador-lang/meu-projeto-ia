@@ -1,4 +1,5 @@
 // Utilidades de interface: criação de elementos, formatação, diálogos e avisos.
+import { api } from './api.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const SVG_TAGS = new Set(['svg', 'path', 'rect', 'line', 'text', 'g', 'circle', 'polyline', 'title']);
@@ -314,4 +315,63 @@ export function mascaraCpfCnpj(input, { soCpf = false } = {}) {
 export function debounce(fn, ms = 300) {
   let t;
   return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+}
+
+// Campo de busca com lista de sugestões (cliente, produto...).
+// buscador({ nome, endpoint, rotulo, inicial: { id, texto }, formatar: (l) => texto, detalhe: (l) => texto, aoEscolher })
+export function buscador({ nome, endpoint, rotulo, inicial, formatar, detalhe, aoEscolher, obrigatorio, classe, extra = {} }) {
+  const oculto = h('input', { type: 'hidden', name: nome, value: inicial?.id ?? '' });
+  const texto = h('input', { type: 'search', value: inicial?.texto ?? '', autocomplete: 'off', placeholder: 'Digite para buscar…',
+    role: 'combobox', 'aria-autocomplete': 'list', 'aria-expanded': 'false' });
+  const lista = h('ul', { class: 'sugestoes oculto', role: 'listbox' });
+  texto.setAttribute('aria-controls', lista.id = `l${Math.random().toString(36).slice(2)}`);
+  let itens = [];
+  let ativo = -1;
+  let ultimo = 0;
+
+  const fechar = () => { lista.classList.add('oculto'); texto.setAttribute('aria-expanded', 'false'); ativo = -1; };
+  const escolher = (l) => {
+    oculto.value = l.id;
+    texto.value = formatar(l);
+    texto.setAttribute('aria-invalid', 'false');
+    fechar();
+    aoEscolher?.(l);
+  };
+  const destacar = (i) => {
+    ativo = i;
+    [...lista.children].forEach((li, j) => li.setAttribute('aria-selected', String(j === i)));
+    lista.children[i]?.scrollIntoView({ block: 'nearest' });
+  };
+  const buscar = debounce(async () => {
+    const minha = ++ultimo;
+    try {
+      const r = await api.get(endpoint, { busca: texto.value, ativo: '1', porPagina: 12, ...extra });
+      if (minha !== ultimo) return;
+      itens = r.linhas;
+      limpar(lista, itens.length ? itens.map((l, i) => {
+        const li = h('li', { role: 'option', 'aria-selected': 'false' }, h('strong', formatar(l)), detalhe ? h('small', detalhe(l)) : null);
+        li.addEventListener('mousedown', (ev) => { ev.preventDefault(); escolher(l); });
+        li.addEventListener('mouseenter', () => destacar(i));
+        return li;
+      }) : h('li', { class: 'nada' }, 'Nada encontrado.'));
+      lista.classList.remove('oculto');
+      texto.setAttribute('aria-expanded', 'true');
+      ativo = -1;
+    } catch (e) { aviso(e.message, 'erro'); }
+  }, 250);
+  texto.addEventListener('input', () => { oculto.value = ''; buscar(); });
+  texto.addEventListener('focus', () => { if (!oculto.value) buscar(); });
+  texto.addEventListener('blur', () => setTimeout(fechar, 100));
+  texto.addEventListener('keydown', (ev) => {
+    if (lista.classList.contains('oculto')) return;
+    if (ev.key === 'ArrowDown') { ev.preventDefault(); destacar(Math.min(ativo + 1, itens.length - 1)); }
+    else if (ev.key === 'ArrowUp') { ev.preventDefault(); destacar(Math.max(ativo - 1, 0)); }
+    else if (ev.key === 'Enter' && ativo >= 0) { ev.preventDefault(); escolher(itens[ativo]); }
+    else if (ev.key === 'Escape') fechar();
+  });
+  const el = campo(rotulo, texto, { obrigatorio, classe: ['buscador', classe].filter(Boolean).join(' ') });
+  el.append(oculto, lista);
+  el.oculto = oculto;
+  el.texto = texto;
+  return el;
 }
