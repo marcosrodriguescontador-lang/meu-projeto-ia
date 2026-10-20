@@ -9,6 +9,7 @@ const MODULOS = [
   { id: 'pedidos', titulo: 'Pedidos', perm: 'pedidos', carregar: () => import('./pedidos.js') },
   { id: 'relatorios', titulo: 'Relatórios', perm: 'relatorios', carregar: () => import('./relatorios.js') },
   { id: 'notas', titulo: 'Notas fiscais', perm: 'notas', carregar: () => import('./notas.js') },
+  { id: 'duplicatas', titulo: 'Duplicatas', perm: 'duplicatas', carregar: () => import('./duplicatas.js') },
   { id: 'clientes', titulo: 'Clientes', perm: 'clientes_ver', carregar: () => import('./clientes.js') },
   { id: 'produtos', titulo: 'Produtos', perm: 'produtos_ver', carregar: () => import('./produtos.js') },
   { id: 'colaboradores', titulo: 'Colaboradores', perm: 'colaboradores', carregar: () => import('./colaboradores.js') },

@@ -148,6 +148,32 @@ CREATE TABLE IF NOT EXISTS notas (
   criado_em TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE UNIQUE INDEX IF NOT EXISTS notas_pedido_ativa ON notas (pedido_id) WHERE status = 'emitida';
+
+CREATE TABLE IF NOT EXISTS duplicatas (
+  id INTEGER PRIMARY KEY,
+  numero_ordem INTEGER NOT NULL UNIQUE,
+  nota_id INTEGER NOT NULL REFERENCES notas(id),
+  pedido_id INTEGER NOT NULL REFERENCES pedidos(id),
+  cliente_id INTEGER NOT NULL REFERENCES clientes(id),
+  numero_fatura TEXT NOT NULL,
+  parcela INTEGER NOT NULL,
+  parcelas INTEGER NOT NULL,
+  data_emissao TEXT NOT NULL,
+  vencimento TEXT,
+  valor INTEGER NOT NULL,
+  banco TEXT NOT NULL DEFAULT '',
+  nosso_numero TEXT NOT NULL DEFAULT '',
+  linha_digitavel TEXT NOT NULL DEFAULT '',
+  praca_pagamento TEXT NOT NULL DEFAULT '',
+  data_aceite TEXT,
+  status TEXT NOT NULL DEFAULT 'aberta' CHECK (status IN ('aberta', 'paga', 'protestada', 'cancelada')),
+  data_pagamento TEXT,
+  data_protesto TEXT,
+  observacoes TEXT NOT NULL DEFAULT '',
+  criado_em TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS duplicatas_venc ON duplicatas (status, vencimento);
+CREATE INDEX IF NOT EXISTS duplicatas_nota ON duplicatas (nota_id);
 `);
 
 export const get = (sql, ...p) => db.prepare(sql).get(...p);

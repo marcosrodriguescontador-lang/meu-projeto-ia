@@ -64,7 +64,7 @@ router.get('/inicio', (req, res) => {
     aprovadosSemNota: get(`SELECT COUNT(*) AS n, COALESCE(SUM(total), 0) AS valor FROM pedidos WHERE status = 'Aprovado'${filtro}`, ...p),
     duplicatas: null,
   };
-  if (pode(req.user.perfil, 'duplicatas') && get("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'duplicatas'")) {
+  if (pode(req.user.perfil, 'duplicatas')) {
     const em7 = new Date(Date.UTC(...hoje.split('-').map((n, i) => (i === 1 ? n - 1 : +n))) + 7 * 86400000).toISOString().slice(0, 10);
     out.duplicatas = {
       vencidas: get(`SELECT COUNT(*) AS n, COALESCE(SUM(valor), 0) AS valor FROM duplicatas

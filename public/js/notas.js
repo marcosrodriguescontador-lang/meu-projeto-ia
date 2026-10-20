@@ -239,12 +239,9 @@ async function registrarNota(pedido, depois) {
   });
 }
 
-// Substituído pelo módulo de duplicatas quando disponível.
 async function oferecerDuplicatas(nota) {
-  try {
-    const m = await import('./duplicatas.js');
-    m.oferecerGeracao?.(nota);
-  } catch { /* módulo de duplicatas ainda não disponível */ }
+  const m = await import('./duplicatas.js');
+  m.oferecerGeracao(nota);
 }
 
 // Detalhes da nota ----------------------------------------------------------
@@ -272,6 +269,8 @@ async function abrirNota(id, depois) {
     botoes: [
       h('button', { type: 'button', class: 'btn', onClick: () => copiarTexto(n.chave) }, icone('copiar'), 'Copiar chave'),
       h('a', { class: 'btn', href: `#/pedidos/${n.pedido_id}`, onClick: () => janela.fechar() }, 'Ver pedido'),
+      ativa && !n.duplicatas ? h('button', { type: 'button', class: 'btn', onClick: () => { janela.fechar(); oferecerDuplicatas(n); } }, 'Gerar duplicatas') : null,
+      n.duplicatas ? h('a', { class: 'btn', href: '#/duplicatas', onClick: () => janela.fechar() }, `Duplicatas (${n.duplicatas})`) : null,
       ativa ? h('button', { type: 'button', class: 'btn perigo', onClick: () => cancelarNota(n, recarregar) }, 'Cancelar NF') : null,
     ].filter(Boolean),
   });

@@ -51,6 +51,7 @@ router.get('/notas', acesso, (req, res) => {
 router.get('/notas/:id', acesso, (req, res) => {
   const n = get(`SELECT ${SELECT_NOTA} FROM ${FROM_NOTA} WHERE n.id = ?`, inteiro(req.params.id));
   if (!n) throw erro(404, 'Nota não encontrada.');
+  n.duplicatas = get("SELECT COUNT(*) AS n FROM duplicatas WHERE nota_id = ? AND status <> 'cancelada'", n.id).n;
   res.json(n);
 });
 
@@ -113,8 +114,7 @@ router.post('/notas/:id/cancelar', acesso, (req, res) => {
   res.json({ ok: true, duplicatasCanceladas: r });
 });
 
-// Cancela as duplicatas em aberto da nota (a tabela de duplicatas é criada no módulo Duplicatas).
+// Cancela as duplicatas em aberto da nota.
 function cancelarDuplicatasDaNota(notaId) {
-  if (!get("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'duplicatas'")) return 0;
   return Number(run("UPDATE duplicatas SET status = 'cancelada' WHERE nota_id = ? AND status = 'aberta'", notaId).changes);
 }

@@ -245,10 +245,21 @@ export function confirmar(texto, { titulo = 'Confirmar', sim = 'Confirmar', peri
   });
 }
 
-// Imprime apenas o conteúdo de uma janela aberta.
+// Imprime apenas o conteúdo da janela aberta. O conteúdo é copiado para uma área fora da
+// janela, porque o navegador imprime só a primeira página de uma janela modal.
 export function imprimirJanela() {
-  document.body.classList.add('imprimindo-janela');
-  const fim = () => { document.body.classList.remove('imprimindo-janela'); window.removeEventListener('afterprint', fim); };
+  const janela = [...document.querySelectorAll('dialog[open]')].pop();
+  const corpo = janela?.querySelector('.janela-corpo');
+  if (!corpo) return window.print();
+  document.getElementById('area-impressao')?.remove();
+  const area = h('div', { id: 'area-impressao' }, [...corpo.childNodes].map((n) => n.cloneNode(true)));
+  document.body.append(area);
+  document.body.classList.add('imprimindo');
+  const fim = () => {
+    document.body.classList.remove('imprimindo');
+    area.remove();
+    window.removeEventListener('afterprint', fim);
+  };
   window.addEventListener('afterprint', fim);
   window.print();
 }
