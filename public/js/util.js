@@ -117,7 +117,13 @@ export function paraNumero(texto) {
 
 // Avisos rápidos ------------------------------------------------------------
 export function aviso(texto, tipo = 'ok') {
-  const caixa = document.getElementById('avisos');
+  // Com uma janela aberta, o aviso vai dentro dela (senão ficaria atrás do fundo escuro).
+  const janela = [...document.querySelectorAll('dialog[open]')].pop();
+  let caixa = document.getElementById('avisos');
+  if (janela) {
+    caixa = janela.querySelector(':scope > .avisos') || h('div', { class: 'avisos', role: 'status', 'aria-live': 'polite' });
+    janela.append(caixa);
+  }
   const el = h('div', { class: ['aviso', tipo === 'erro' && 'erro'] }, texto);
   caixa.append(el);
   setTimeout(() => el.remove(), tipo === 'erro' ? 6000 : 3500);

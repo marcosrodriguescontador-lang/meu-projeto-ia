@@ -49,6 +49,46 @@ CREATE TABLE IF NOT EXISTS login_falhas (
   bloqueado_ate INTEGER NOT NULL DEFAULT 0,
   atualizado INTEGER NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS clientes (
+  id INTEGER PRIMARY KEY,
+  nome TEXT NOT NULL,
+  documento TEXT NOT NULL UNIQUE,
+  ie TEXT NOT NULL DEFAULT '',
+  logradouro TEXT NOT NULL DEFAULT '',
+  numero TEXT NOT NULL DEFAULT '',
+  complemento TEXT NOT NULL DEFAULT '',
+  bairro TEXT NOT NULL DEFAULT '',
+  municipio TEXT NOT NULL DEFAULT '',
+  uf TEXT NOT NULL DEFAULT '',
+  cep TEXT NOT NULL DEFAULT '',
+  telefone TEXT NOT NULL DEFAULT '',
+  email TEXT NOT NULL DEFAULT '',
+  limite_credito INTEGER NOT NULL DEFAULT 0,
+  observacoes TEXT NOT NULL DEFAULT '',
+  ativo INTEGER NOT NULL DEFAULT 1,
+  criado_em TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS produtos (
+  id INTEGER PRIMARY KEY,
+  codigo TEXT NOT NULL UNIQUE COLLATE NOCASE,
+  descricao TEXT NOT NULL,
+  unidade TEXT NOT NULL DEFAULT 'UN',
+  ncm TEXT NOT NULL DEFAULT '',
+  preco INTEGER NOT NULL DEFAULT 0,
+  registro_mapa TEXT NOT NULL DEFAULT '',
+  classe_toxicologica TEXT NOT NULL DEFAULT '',
+  cfop TEXT NOT NULL DEFAULT '5102',
+  cst_icms TEXT NOT NULL DEFAULT '',
+  aliquota_icms REAL NOT NULL DEFAULT 0,
+  reducao_base REAL NOT NULL DEFAULT 0,
+  cst_pis TEXT NOT NULL DEFAULT '',
+  cst_cofins TEXT NOT NULL DEFAULT '',
+  obs_fiscal TEXT NOT NULL DEFAULT '',
+  ativo INTEGER NOT NULL DEFAULT 1,
+  criado_em TEXT NOT NULL DEFAULT (datetime('now'))
+);
 `);
 
 export const get = (sql, ...p) => db.prepare(sql).get(...p);
@@ -67,6 +107,19 @@ export function tx(fn) {
     throw e;
   }
 }
+
+// Listagem paginada com busca simples.
+export function listar({ select, from, where = [], params = [], ordem, pagina = 1, porPagina = 20 }) {
+  const w = where.length ? ` WHERE ${where.join(' AND ')}` : '';
+  const total = get(`SELECT COUNT(*) AS n FROM ${from}${w}`, ...params).n;
+  const p = Math.max(1, Number(pagina) || 1);
+  const n = Math.min(Math.max(1, Number(porPagina) || 20), 200);
+  const linhas = all(`SELECT ${select} FROM ${from}${w} ORDER BY ${ordem} LIMIT ? OFFSET ?`, ...params, n, (p - 1) * n);
+  return { linhas, total, pagina: p, porPagina: n };
+}
+
+// Termo de busca para LIKE (escapa curingas).
+export const termo = (s) => `%${String(s ?? '').trim().replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
 
 export function lerConfig() {
   const cfg = {};

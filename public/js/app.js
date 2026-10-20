@@ -6,6 +6,10 @@ import { telaLogin, telaPrimeiroAcesso, telaTrocarSenhaObrigatoria, abrirAlterar
 // Módulos do menu. "perm" corresponde às permissões do servidor (lib/permissoes.js).
 const MODULOS = [
   { id: 'inicio', titulo: 'Início', perm: 'inicio', carregar: () => import('./inicio.js') },
+  { id: 'clientes', titulo: 'Clientes', perm: 'clientes_ver', carregar: () => import('./clientes.js') },
+  { id: 'produtos', titulo: 'Produtos', perm: 'produtos_ver', carregar: () => import('./produtos.js') },
+  { id: 'colaboradores', titulo: 'Colaboradores', perm: 'colaboradores', carregar: () => import('./colaboradores.js') },
+  { id: 'configuracoes', titulo: 'Configurações', perm: 'configuracoes', carregar: () => import('./configuracoes.js') },
 ];
 
 const app = document.getElementById('app');
