@@ -250,7 +250,8 @@ dialog.janela > form, dialog.janela > .janela-conteudo { display: flex; flex-dir
 
 /* Gráfico ---------------------------------------------------------------- */
 .grafico { width: 100%; overflow-x: auto; }
-.grafico svg { display: block; min-width: 320px; }
+.grafico svg { display: block; max-width: none; height: auto; }
+@media print { .grafico svg { max-width: 100%; } }
 .grafico .barra { fill: var(--verde-vivo); }
 .grafico .barra:hover { fill: var(--verde-escuro); }
 .grafico text { font-size: 11px; fill: var(--texto-suave); }

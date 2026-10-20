@@ -7,6 +7,7 @@ import { telaLogin, telaPrimeiroAcesso, telaTrocarSenhaObrigatoria, abrirAlterar
 const MODULOS = [
   { id: 'inicio', titulo: 'Início', perm: 'inicio', carregar: () => import('./inicio.js') },
   { id: 'pedidos', titulo: 'Pedidos', perm: 'pedidos', carregar: () => import('./pedidos.js') },
+  { id: 'relatorios', titulo: 'Relatórios', perm: 'relatorios', carregar: () => import('./relatorios.js') },
   { id: 'clientes', titulo: 'Clientes', perm: 'clientes_ver', carregar: () => import('./clientes.js') },
   { id: 'produtos', titulo: 'Produtos', perm: 'produtos_ver', carregar: () => import('./produtos.js') },
   { id: 'colaboradores', titulo: 'Colaboradores', perm: 'colaboradores', carregar: () => import('./colaboradores.js') },
