@@ -6,7 +6,7 @@ import { dataHora } from '@/lib/formato'
 import { rpc } from '@/lib/rpc'
 import { DiferencaAuditoria, rotuloAcao } from './rotulos'
 
-const ENTIDADES = { pessoa: 'Pessoas', usuario: 'Usuários', perfil: 'Perfis', configuracao: 'Configurações', backup: 'Backup', sistema: 'Sistema' }
+const ENTIDADES = { pessoa: 'Pessoas', imovel: 'Imóveis', usuario: 'Usuários', perfil: 'Perfis', configuracao: 'Configurações', backup: 'Backup', sistema: 'Sistema' }
 
 export function Auditoria() {
   const toast = useToast()

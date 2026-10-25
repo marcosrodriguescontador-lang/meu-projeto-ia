@@ -1,5 +1,5 @@
 // Anexos (documentos e imagens) cifrados em disco com AES-256-GCM.
-import { and, asc, eq, isNull } from 'drizzle-orm'
+import { and, asc, eq, isNull, sql } from 'drizzle-orm'
 import { randomUUID } from 'node:crypto'
 import { promises as fs } from 'node:fs'
 import { basename, extname, join } from 'node:path'
@@ -7,7 +7,7 @@ import type { AnexoDto } from '@shared/dto'
 import { erro } from '@shared/erros'
 import type { Permissao } from '@shared/permissoes'
 import { cifrarArquivo, decifrarArquivo, sha256Arquivo } from '../../infra/crypto'
-import { anexo, pessoa } from '../../infra/db/schema'
+import { anexo, imovel, imovelFoto, pessoa } from '../../infra/db/schema'
 import { agoraIso, exigir, type Ator, type Infra } from '../../nucleo/contexto'
 import { auditar } from '../seguranca/auditoria'
 
@@ -27,10 +27,11 @@ export const TIPOS_PERMITIDOS: Record<string, string> = {
 
 export const CATEGORIAS_ANEXO = ['Documento de identificação', 'Comprovante de endereço', 'Comprovante de renda', 'Contrato social', 'Certidão', 'Procuração', 'Outros'] as const
 
-type Entidade = 'pessoa'
+export type Entidade = 'pessoa' | 'imovel'
 
 const PERMISSOES: Record<Entidade, { ver: Permissao; gerenciar: Permissao }> = {
-  pessoa: { ver: 'pessoas.documentos.ver', gerenciar: 'pessoas.documentos.gerenciar' }
+  pessoa: { ver: 'pessoas.documentos.ver', gerenciar: 'pessoas.documentos.gerenciar' },
+  imovel: { ver: 'imoveis.documentos.ver', gerenciar: 'imoveis.documentos.gerenciar' }
 }
 
 function caminhoArmazenado(infra: Infra, uuid: string): string {
@@ -40,26 +41,39 @@ function caminhoArmazenado(infra: Infra, uuid: string): string {
 function conferirEntidade(infra: Infra, entidade: Entidade, id: number): void {
   if (entidade === 'pessoa' && !infra.db.select({ id: pessoa.id }).from(pessoa).where(and(eq(pessoa.id, id), isNull(pessoa.excluidoEm))).get())
     throw erro.naoEncontrado('Pessoa')
+  if (entidade === 'imovel' && !infra.db.select({ id: imovel.id }).from(imovel).where(and(eq(imovel.id, id), isNull(imovel.excluidoEm))).get())
+    throw erro.naoEncontrado('Imóvel')
 }
 
+/** Lista documentos (fotos de imóveis têm galeria própria e não aparecem aqui). */
 export function listarAnexos(infra: Infra, ator: Ator, entidade: Entidade, entidadeId: number): AnexoDto[] {
   exigir(ator, PERMISSOES[entidade].ver)
   return infra.db
     .select({ id: anexo.id, categoria: anexo.categoria, nomeOriginal: anexo.nomeOriginal, mime: anexo.mime, tamanho: anexo.tamanho, criadoEm: anexo.criadoEm, criadoPor: anexo.criadoPor })
     .from(anexo)
-    .where(and(eq(anexo.entidade, entidade), eq(anexo.entidadeId, entidadeId), isNull(anexo.excluidoEm)))
+    .where(and(eq(anexo.entidade, entidade), eq(anexo.entidadeId, entidadeId), isNull(anexo.excluidoEm), sql`NOT EXISTS (SELECT 1 FROM ${imovelFoto} f WHERE f.anexo_id = ${anexo.id})`))
     .orderBy(asc(anexo.id))
     .all()
 }
 
-export async function adicionarAnexo(infra: Infra, ator: Ator, entidade: Entidade, entidadeId: number, categoria: string, origem: string): Promise<number> {
-  exigir(ator, PERMISSOES[entidade].gerenciar)
+export interface OpcoesAnexo {
+  permissao?: Permissao
+  tipos?: Record<string, string>
+  tamanhoMaximo?: number
+  /** Executado na mesma transação do registro do anexo (ex.: vincular a foto). */
+  aoRegistrar?: (anexoId: number) => void
+}
+
+export async function adicionarAnexo(infra: Infra, ator: Ator, entidade: Entidade, entidadeId: number, categoria: string, origem: string, op: OpcoesAnexo = {}): Promise<number> {
+  exigir(ator, op.permissao ?? PERMISSOES[entidade].gerenciar)
   conferirEntidade(infra, entidade, entidadeId)
   const ext = extname(origem).toLowerCase()
-  const mime = TIPOS_PERMITIDOS[ext]
-  if (!mime) throw erro.validacao(`Tipo de arquivo não permitido (${ext || 'sem extensão'}). Permitidos: ${Object.keys(TIPOS_PERMITIDOS).join(', ')}`)
+  const tipos = op.tipos ?? TIPOS_PERMITIDOS
+  const mime = tipos[ext]
+  if (!mime) throw erro.validacao(`Tipo de arquivo não permitido (${ext || 'sem extensão'}). Permitidos: ${Object.keys(tipos).join(', ')}`)
   const { size } = await fs.stat(origem)
-  if (size > TAMANHO_MAXIMO) throw erro.validacao('Arquivo maior que 50 MB.')
+  const limite = op.tamanhoMaximo ?? TAMANHO_MAXIMO
+  if (size > limite) throw erro.validacao(`Arquivo maior que ${Math.round(limite / 1024 / 1024)} MB.`)
   if (size === 0) throw erro.validacao('Arquivo vazio.')
   const uuid = randomUUID()
   const destino = caminhoArmazenado(infra, uuid)
@@ -73,6 +87,7 @@ export async function adicionarAnexo(infra: Infra, ator: Ator, entidade: Entidad
         .values({ uuid, entidade, entidadeId, categoria: categoria.slice(0, 60) || 'Outros', nomeOriginal: basename(origem).slice(0, 255), mime, tamanho: size, sha256: hash, criadoPor: ator.id })
         .returning({ id: anexo.id })
         .get()
+      op.aoRegistrar?.(id)
       auditar(infra, ator, { acao: 'ANEXO_ADICIONADO', entidade, entidadeId, descricao: `${categoria}: ${basename(origem)}` })
       return id
     })()
@@ -113,4 +128,34 @@ export function removerAnexo(infra: Infra, ator: Ator, id: number, motivo: strin
     infra.db.update(anexo).set({ excluidoEm: agoraIso(infra), excluidoPor: ator.id }).where(eq(anexo.id, id)).run()
     auditar(infra, ator, { acao: 'ANEXO_REMOVIDO', entidade: a.entidade, entidadeId: a.entidadeId, descricao: `${a.nomeOriginal} — motivo: ${motivo.trim()}` })
   })()
+}
+
+/** Armazena um conteúdo binário cifrado (ex.: miniatura de foto) e devolve o identificador. */
+export async function armazenarConteudo(infra: Infra, dados: Buffer): Promise<string> {
+  const uuid = randomUUID()
+  const destino = caminhoArmazenado(infra, uuid)
+  await fs.mkdir(join(destino, '..'), { recursive: true })
+  const tmp = join(infra.caminhos.temporarios, `${uuid}.tmp`)
+  await fs.writeFile(tmp, dados)
+  try {
+    await cifrarArquivo(infra.chaves.anexos, tmp, destino)
+  } finally {
+    await fs.rm(tmp, { force: true })
+  }
+  return uuid
+}
+
+export async function lerConteudo(infra: Infra, uuid: string): Promise<Buffer> {
+  const tmp = join(infra.caminhos.temporarios, `${randomUUID()}.tmp`)
+  try {
+    await decifrarArquivo(infra.chaves.anexos, caminhoArmazenado(infra, uuid), tmp)
+    return await fs.readFile(tmp)
+  } finally {
+    await fs.rm(tmp, { force: true })
+  }
+}
+
+export function uuidAnexo(infra: Infra, id: number): { uuid: string; mime: string; nome: string; sha256: string } {
+  const a = obterAnexo(infra, id)
+  return { uuid: a.uuid, mime: a.mime, nome: a.nomeOriginal, sha256: a.sha256 }
 }

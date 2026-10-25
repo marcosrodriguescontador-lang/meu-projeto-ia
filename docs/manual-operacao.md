@@ -1,4 +1,4 @@
-# Manual básico de operação — Fase 1
+# Manual básico de operação — Fases 1 e 2
 
 ## Acesso
 - **Entrar:** usuário e senha. Após 5 tentativas inválidas o usuário fica bloqueado por 15 minutos (um administrador pode desbloquear antes em *Usuários e perfis*).
@@ -21,6 +21,29 @@ Após salvar, ficam disponíveis:
 - **Histórico:** todas as alterações, com usuário, data e campos modificados.
 
 **Excluir** exige motivo e não apaga o histórico. Pessoas vinculadas a usuários ou relacionadas a outras pessoas não podem ser excluídas.
+
+## Imóveis
+**Cadastrar:** *Imóveis → Novo imóvel* (ou atalho no Painel). As abas são:
+1. **Identificação e endereço** — tipo, finalidade, matrícula + cartório, inscrição municipal/IPTU e endereço.
+2. **Cômodos e características** — dormitórios, suítes, banheiros, vagas, áreas (m²), descrição comercial (vai para a ficha), observações internas (não vão para a ficha) e características.
+3. **Valores e disponibilidade** — marque *Ofertar para venda* e/ou *Ofertar para locação*, com valor e comissão prevista; condomínio, IPTU e corretor responsável.
+4. **Proprietários** — busque a pessoa e informe a participação. A soma deve ser 100% (use *Dividir igualmente* para coproprietários). Quem ainda não era proprietário recebe o papel automaticamente.
+
+O **código** do imóvel é gerado ao salvar.
+
+**Disponibilidade:** venda e locação têm situações independentes (Disponível, Reservado, Em negociação, Alugado/Vendido, Indisponível, Inativo). Use *Alterar situação* no cartão da modalidade e informe o motivo — tudo fica na aba *Histórico*. Ao marcar a venda como **Vendido**, a oferta de locação disponível é inativada. *Alugado* e *Vendido* manuais servem para registrar a carteira atual; a partir das próximas fases eles serão definidos pelos contratos.
+
+**Fotos:** aba *Fotos → Adicionar fotos…* (JPG, PNG ou WEBP). A primeira vira capa; use a estrela para trocar a capa, as setas para reordenar e o campo para legenda. Clique na foto para ampliar (setas do teclado navegam).
+
+**Documentos:** matrícula, escritura, IPTU, plantas, laudos etc., guardados cifrados.
+
+**Ficha em PDF:** *Ficha comercial* (para clientes — sem endereço exato nem proprietários) ou *Ficha interna* (com proprietários, matrícula e observações).
+
+**Pesquisa:** busca por código, endereço, bairro, cidade ou descrição; filtros por modalidade, situação, tipo, cidade e bairro; *Mais filtros* para faixa de preço, dormitórios, vagas, finalidade e características. Alterne entre tabela e cards no canto direito.
+
+**Exclusão:** exige motivo; não é permitida com oferta reservada, em negociação ou alugada.
+
+No cadastro da pessoa, a aba **Imóveis** lista os imóveis de que ela é proprietária. Não é possível remover o papel Proprietário (ou Corretor) de quem está vinculado a imóveis.
 
 ## Usuários e perfis (administrador)
 - **Novo usuário:** nome, login, perfil e senha temporária.

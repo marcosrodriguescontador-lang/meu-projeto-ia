@@ -13,10 +13,11 @@ import { dataHora, formatarDocumento } from '@/lib/formato'
 import { rpc } from '@/lib/rpc'
 import { BuscaPessoa } from './BuscaPessoa'
 import { DadosBancarios } from './DadosBancarios'
-import { Documentos } from './Documentos'
+import { Documentos } from '@/features/comum/Documentos'
 import { Historico } from './Historico'
+import { ImoveisDaPessoa } from './ImoveisDaPessoa'
 
-type Aba = 'dados' | 'enderecos' | 'contatos' | 'relacoes' | 'bancarios' | 'documentos' | 'historico'
+type Aba = 'dados' | 'enderecos' | 'contatos' | 'relacoes' | 'bancarios' | 'imoveis' | 'documentos' | 'historico'
 
 const VAZIO: PessoaInput = {
   tipo: 'PF',
@@ -131,6 +132,7 @@ export function FormPessoa() {
   ]
   if (id) {
     if (pessoa?.dadosBancarios) abas.push(['bancarios', 'Dados bancários', pessoa.dadosBancarios.length])
+    if (pessoa?.papeis.includes('PROPRIETARIO') && pode('imoveis.ver') && pode('imoveis.dados_internos.ver')) abas.push(['imoveis', 'Imóveis'])
     if (pode('pessoas.documentos.ver')) abas.push(['documentos', 'Documentos'])
     abas.push(['historico', 'Histórico'])
   }
@@ -260,7 +262,8 @@ export function FormPessoa() {
       </fieldset>
 
       {aba === 'bancarios' && id && pessoa?.dadosBancarios && <DadosBancarios pessoaId={id} itens={pessoa.dadosBancarios} titular={{ nome: pessoa.nome, documento: pessoa.documento }} />}
-      {aba === 'documentos' && id && <Documentos pessoaId={id} />}
+      {aba === 'imoveis' && id && <ImoveisDaPessoa pessoaId={id} />}
+      {aba === 'documentos' && id && <Documentos entidade="pessoa" entidadeId={id} />}
       {aba === 'historico' && id && <Historico pessoaId={id} />}
 
       <Confirmacao

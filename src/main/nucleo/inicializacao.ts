@@ -10,6 +10,7 @@ import { aplicarRestauracaoPendente, registrarRestauracaoConcluida } from '../mo
 import { sincronizarPerfisSistema } from '../modules/seguranca/perfis'
 import { estaConfigurado } from '../modules/seguranca/autenticacao'
 import type { Caminhos, Infra } from './contexto'
+import { processadorSemRedimensionar, type ProcessadorImagem } from '../infra/imagens'
 
 export function definirCaminhos(dados: string): Caminhos {
   return {
@@ -29,6 +30,7 @@ export interface OpcoesInicializacao {
   protetor: ProtetorSO
   versaoApp: string
   agora?: () => Date
+  imagens?: ProcessadorImagem
 }
 
 export async function inicializar(op: OpcoesInicializacao): Promise<Infra> {
@@ -46,7 +48,7 @@ export async function inicializar(op: OpcoesInicializacao): Promise<Infra> {
   const novas = migrar(bruto)
   if (novas.length) log.info('Migrações aplicadas', { novas })
 
-  const infra: Infra = { db: criarBanco(bruto), bruto, chaves, cofre, caminhos, versaoApp: op.versaoApp, estacao: hostname(), agora: op.agora ?? (() => new Date()) }
+  const infra: Infra = { db: criarBanco(bruto), bruto, chaves, cofre, caminhos, versaoApp: op.versaoApp, estacao: hostname(), agora: op.agora ?? (() => new Date()), imagens: op.imagens ?? processadorSemRedimensionar }
   if (estaConfigurado(infra)) sincronizarPerfisSistema(infra)
   if (restauracao) registrarRestauracaoConcluida(infra, restauracao)
   return infra

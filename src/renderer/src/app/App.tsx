@@ -14,6 +14,8 @@ import { Painel } from '@/features/painel/Painel'
 import { FormPessoa } from '@/features/pessoas/FormPessoa'
 import { ListaPessoas } from '@/features/pessoas/ListaPessoas'
 import { Usuarios } from '@/features/usuarios/Usuarios'
+import { FormImovel } from '@/features/imoveis/FormImovel'
+import { ListaImoveis } from '@/features/imoveis/ListaImoveis'
 import { Layout } from './Layout'
 import { useSessao } from './sessao'
 
@@ -53,6 +55,9 @@ export function App() {
             <Route path="pessoas" element={<Protegida permissao="pessoas.ver"><ListaPessoas /></Protegida>} />
             <Route path="pessoas/nova" element={<Protegida permissao="pessoas.criar"><FormPessoa /></Protegida>} />
             <Route path="pessoas/:id" element={<Protegida permissao="pessoas.ver"><FormPessoa /></Protegida>} />
+            <Route path="imoveis" element={<Protegida permissao="imoveis.ver"><ListaImoveis /></Protegida>} />
+            <Route path="imoveis/novo" element={<Protegida permissao="imoveis.criar"><FormImovel /></Protegida>} />
+            <Route path="imoveis/:id" element={<Protegida permissao="imoveis.ver"><FormImovel key="editar" /></Protegida>} />
             <Route path="usuarios" element={<Protegida permissao="usuarios.ver"><Usuarios /></Protegida>} />
             <Route path="auditoria" element={<Protegida permissao="auditoria.ver"><Auditoria /></Protegida>} />
             <Route path="backup" element={<Protegida permissao="backup.executar"><Backup /></Protegida>} />

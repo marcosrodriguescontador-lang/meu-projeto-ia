@@ -53,3 +53,38 @@ export function pessoaFisica(extra: Partial<PessoaInput> = {}): PessoaInput {
     ...extra
   }
 }
+
+export const PNG_1PX = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64')
+
+export function imovelBase(proprietarios: { pessoaId: number; percentual: string; principal: boolean }[], extra: Partial<import('../src/shared/schemas').ImovelInput> = {}): import('../src/shared/schemas').ImovelInput {
+  return {
+    tipo: 'APARTAMENTO',
+    finalidade: 'RESIDENCIAL',
+    cep: '01310-100',
+    logradouro: 'Avenida Paulista',
+    numero: '1000',
+    complemento: 'ap 121',
+    bairro: 'Bela Vista',
+    cidade: 'São Paulo',
+    uf: 'SP',
+    matricula: '12345',
+    cartorio: '4º CRI de São Paulo',
+    inscricaoMunicipal: '009.123.0045-1',
+    areaConstruida: '85,50',
+    areaTerreno: '',
+    dormitorios: '3',
+    suites: '1',
+    banheiros: '2',
+    vagas: '2',
+    descricaoComercial: 'Apartamento amplo, próximo ao metrô.',
+    observacoesInternas: 'Chaves na portaria.',
+    condominio: '1.200,00',
+    iptuAnual: '3.600,00',
+    corretorId: null,
+    caracteristicas: [],
+    proprietarios,
+    venda: { ativa: true, valor: '850.000,00', comissao: '6' },
+    locacao: { ativa: true, valor: '4.500,00', comissao: '10' },
+    ...extra
+  }
+}

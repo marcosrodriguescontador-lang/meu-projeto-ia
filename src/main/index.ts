@@ -6,6 +6,7 @@ import type { ProtetorSO } from './infra/keystore'
 import { Cofre, protetorInseguroParaTestes } from './infra/keystore'
 import { criarDespachante } from './ipc/roteador'
 import { criarMetodos } from './ipc/metodos'
+import { processadorElectron } from './ipc/electron-util'
 import type { Infra } from './nucleo/contexto'
 import { definirCaminhos, encerrar, inicializar } from './nucleo/inicializacao'
 import { backupDevido, criarBackup } from './modules/backup/backup'
@@ -43,7 +44,7 @@ function escolherProtetor(): ProtetorSO {
 async function iniciarInfra(): Promise<void> {
   configurarLog(caminhos.logs)
   try {
-    const infra = await inicializar({ caminhos, protetor: escolherProtetor(), versaoApp: app.getVersion() })
+    const infra = await inicializar({ caminhos, protetor: escolherProtetor(), versaoApp: app.getVersion(), imagens: processadorElectron })
     const sessao = new GerenciadorSessao(() => lerConfig(infra, 'seguranca')!.inatividadeMinutos * 60_000)
     base = { infra, auth: new Autenticacao(infra, sessao) }
     log.info('Sistema iniciado', { versao: app.getVersion() })
@@ -122,6 +123,7 @@ app.whenReady().then(async () => {
       caminhos,
       cofre: () => base?.infra.cofre ?? new Cofre(caminhos.cofre, escolherProtetor()),
       erroInicializacao: () => erroInicializacao,
+      dirMarca: join(app.getAppPath(), 'assets', 'brand'),
       reiniciar: () => {
         app.relaunch()
         app.exit(0)

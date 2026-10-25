@@ -15,6 +15,20 @@
       "when": 1792905271372,
       "tag": "0001_auditoria_imutavel",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1792914224633,
+      "tag": "0002_imoveis",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1792914225392,
+      "tag": "0003_imoveis_dados_iniciais",
+      "breakpoints": true
     }
   ]
 }

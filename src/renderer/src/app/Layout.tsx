@@ -23,7 +23,7 @@ const GRUPOS: { titulo: string; itens: ItemMenu[] }[] = [
     titulo: 'Cadastros',
     itens: [
       { rota: '/pessoas', rotulo: 'Pessoas', icone: <Users />, permissao: 'pessoas.ver' },
-      { rotulo: 'Imóveis', icone: <Building2 />, fase: 2 }
+      { rota: '/imoveis', rotulo: 'Imóveis', icone: <Building2 />, permissao: 'imoveis.ver' }
     ]
   },
   {

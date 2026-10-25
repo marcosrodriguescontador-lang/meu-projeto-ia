@@ -3,8 +3,8 @@ import type { PerfilDto } from '@shared/dto'
 import { erro } from '@shared/erros'
 import { PERFIS_PADRAO, PERMISSOES, TODAS_PERMISSOES, type Permissao } from '@shared/permissoes'
 import { perfilSchema, type PerfilInput } from '@shared/schemas'
-import { perfil, perfilPermissao, usuario } from '../../infra/db/schema'
-import { exigir, type Ator, type Infra } from '../../nucleo/contexto'
+import { configuracao, perfil, perfilPermissao, usuario } from '../../infra/db/schema'
+import { exigir, SISTEMA, type Ator, type Infra } from '../../nucleo/contexto'
 import { auditar } from './auditoria'
 
 export const PERFIL_ADMIN = 'Administrador'
@@ -19,18 +19,36 @@ export function permissoesDoPerfil(infra: Infra, perfilId: number): Permissao[] 
     .filter((p) => p in PERMISSOES)
 }
 
-/** Cria os perfis padrão e garante que o Administrador tenha todas as permissões (inclusive as de versões novas). */
+/** Permissões existentes na Fase 1 (base para instalações anteriores ao controle de versões de permissões). */
+const PERMISSOES_FASE_1 = [
+  'usuarios.ver', 'usuarios.gerenciar', 'perfis.gerenciar', 'pessoas.ver', 'pessoas.criar', 'pessoas.editar', 'pessoas.excluir',
+  'pessoas.dados_bancarios.ver', 'pessoas.dados_bancarios.editar', 'pessoas.documentos.ver', 'pessoas.documentos.gerenciar',
+  'auditoria.ver', 'backup.executar', 'backup.restaurar', 'configuracoes.gerenciar'
+]
+
+/**
+ * Cria os perfis padrão e, quando uma versão nova introduz permissões, concede-as aos perfis padrão
+ * que as preveem. Permissões já conhecidas não são reconcedidas (respeita ajustes feitos pelo administrador).
+ */
 export function sincronizarPerfisSistema(infra: Infra): void {
   infra.bruto.transaction(() => {
+    const registro = infra.db.select().from(configuracao).where(eq(configuracao.chave, 'permissoes_conhecidas')).get()
+    const haPerfis = !!infra.db.select({ id: perfil.id }).from(perfil).limit(1).get()
+    const conhecidas = new Set<string>(registro ? (JSON.parse(registro.valor) as string[]) : haPerfis ? PERMISSOES_FASE_1 : [])
+    const novas = TODAS_PERMISSOES.filter((p) => !conhecidas.has(p))
     for (const p of PERFIS_PADRAO) {
       const existente = infra.db.select().from(perfil).where(eq(perfil.nome, p.nome)).get()
       if (!existente) {
         const { id } = infra.db.insert(perfil).values({ nome: p.nome, descricao: p.descricao, sistema: p.nome === PERFIL_ADMIN }).returning({ id: perfil.id }).get()
         if (p.permissoes.length) infra.db.insert(perfilPermissao).values(p.permissoes.map((permissao) => ({ perfilId: id, permissao }))).run()
-      } else if (existente.nome === PERFIL_ADMIN) {
-        infra.db.insert(perfilPermissao).values(TODAS_PERMISSOES.map((permissao) => ({ perfilId: existente.id, permissao }))).onConflictDoNothing().run()
+        continue
       }
+      const conceder = existente.nome === PERFIL_ADMIN ? TODAS_PERMISSOES : p.permissoes.filter((x) => novas.includes(x))
+      if (conceder.length) infra.db.insert(perfilPermissao).values(conceder.map((permissao) => ({ perfilId: existente.id, permissao }))).onConflictDoNothing().run()
     }
+    if (novas.length && haPerfis) auditar(infra, SISTEMA, { acao: 'PERMISSOES_ATUALIZADAS', entidade: 'perfil', descricao: `Novas permissões concedidas aos perfis padrão: ${novas.join(', ')}` })
+    const valor = JSON.stringify(TODAS_PERMISSOES)
+    infra.db.insert(configuracao).values({ chave: 'permissoes_conhecidas', valor }).onConflictDoUpdate({ target: configuracao.chave, set: { valor } }).run()
   })()
 }
 

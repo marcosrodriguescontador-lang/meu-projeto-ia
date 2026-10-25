@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { HardDriveDownload, UserPlus, Users } from 'lucide-react'
+import { Building2, HardDriveDownload, UserPlus, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { PAPEIS, type Papel } from '@shared/schemas'
 import { useSessao } from '@/app/sessao'
@@ -9,7 +9,7 @@ import { rpc } from '@/lib/rpc'
 
 export function Painel() {
   const { sessao, pode } = useSessao()
-  const { data } = useQuery({ queryKey: ['painel'], queryFn: () => rpc('painel.indicadores') })
+  const { data } = useQuery({ queryKey: ['painel'], queryFn: () => rpc('painel.indicadores'), staleTime: 0, refetchOnMount: 'always' })
   const papeis = Object.entries(PAPEIS) as [Papel, string][]
   return (
     <>
@@ -25,6 +25,11 @@ export function Painel() {
                 </Botao>
               </Link>
             )}
+            {pode('imoveis.criar') && pode('imoveis.dados_internos.ver') && (
+              <Link to="/imoveis/novo">
+                <Botao icone={<Building2 className="size-4" />}>Novo imóvel</Botao>
+              </Link>
+            )}
             {pode('backup.executar') && (
               <Link to="/backup">
                 <Botao icone={<HardDriveDownload className="size-4" />}>Backup</Botao>
@@ -38,6 +43,14 @@ export function Painel() {
           <Aviso tom="alerta" titulo="Backup pendente">
             {data.ultimoBackup ? `Último backup em ${dataHora(data.ultimoBackup.ts)}.` : 'Nenhum backup foi realizado ainda.'} Recomenda-se gerar uma cópia agora.
           </Aviso>
+        </div>
+      )}
+      {data?.imoveis && (
+        <div className="mb-4 grid grid-cols-4 gap-4">
+          <Indicador rotulo="Imóveis cadastrados" valor={data.imoveis.total} icone={<Building2 className="size-4" />} />
+          <Indicador rotulo="Disponíveis para venda" valor={data.imoveis.disponiveisVenda} tom="destaque" />
+          <Indicador rotulo="Disponíveis para locação" valor={data.imoveis.disponiveisLocacao} tom="destaque" />
+          <Indicador rotulo="Imóveis alugados" valor={data.imoveis.alugados} detalhe={`${data.imoveis.emNegociacao} em negociação/reservados · ${data.imoveis.vendidos} vendidos`} />
         </div>
       )}
       <div className="grid grid-cols-4 gap-4">
@@ -71,7 +84,6 @@ export function Painel() {
         </Cartao>
         <Cartao titulo="Próximas etapas">
           <ul className="space-y-2 text-sm text-texto-2">
-            <li>Indicadores de imóveis — Fase 2</li>
             <li>Contratos, aluguéis e repasses — Fase 3</li>
             <li>Saldo, receitas e resultado — Fase 4</li>
             <li>Comissões e funil — Fase 5</li>

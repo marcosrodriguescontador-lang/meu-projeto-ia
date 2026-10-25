@@ -3,6 +3,7 @@ import { erro } from '@shared/erros'
 import type { Permissao } from '@shared/permissoes'
 import type { Banco, BancoBruto } from '../infra/db/conexao'
 import type { Cofre } from '../infra/keystore'
+import type { ProcessadorImagem } from '../infra/imagens'
 
 export interface Caminhos {
   dados: string
@@ -30,6 +31,7 @@ export interface Infra {
   versaoApp: string
   estacao: string
   agora: () => Date
+  imagens: ProcessadorImagem
 }
 
 export interface UsuarioSessao {

@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { normalizarDocumento, UFS, validarCep, validarCnpj, validarCpf } from './documentos'
+import { paraCentavos, paraCentesimos, paraPontosBase } from './dinheiro'
 
 const texto = (max: number) => z.string().trim().max(max, `Máximo de ${max} caracteres`)
 const obrigatorio = (max: number) => texto(max).min(1, 'Campo obrigatório')
@@ -247,3 +248,170 @@ export type DadoBancarioInput = z.input<typeof dadoBancarioSchema>
 export type EmpresaInput = z.input<typeof empresaSchema>
 export type SegurancaConfig = z.output<typeof segurancaConfigSchema>
 export type BackupConfig = z.output<typeof backupConfigSchema>
+
+// ───────────── Imóveis ─────────────
+
+export const TIPOS_IMOVEL = {
+  CASA: 'Casa',
+  SOBRADO: 'Sobrado',
+  APARTAMENTO: 'Apartamento',
+  COBERTURA: 'Cobertura',
+  KITNET: 'Kitnet / studio',
+  SALA_COMERCIAL: 'Sala comercial',
+  LOJA: 'Loja / ponto comercial',
+  GALPAO: 'Galpão / barracão',
+  PREDIO: 'Prédio',
+  TERRENO: 'Terreno / lote',
+  CHACARA: 'Chácara',
+  SITIO: 'Sítio',
+  FAZENDA: 'Fazenda',
+  OUTRO: 'Outro'
+} as const
+export const FINALIDADES_IMOVEL = { RESIDENCIAL: 'Residencial', COMERCIAL: 'Comercial', RURAL: 'Rural', MISTA: 'Mista' } as const
+export const MODALIDADES = { VENDA: 'Venda', LOCACAO: 'Locação' } as const
+export const SITUACOES_OFERTA = {
+  DISPONIVEL: 'Disponível',
+  RESERVADO: 'Reservado',
+  EM_NEGOCIACAO: 'Em negociação',
+  ALUGADO: 'Alugado',
+  VENDIDO: 'Vendido',
+  INDISPONIVEL: 'Indisponível',
+  INATIVO: 'Inativo'
+} as const
+export type Modalidade = keyof typeof MODALIDADES
+export type SituacaoOferta = keyof typeof SITUACOES_OFERTA
+
+/** Situações possíveis por modalidade. */
+export const SITUACOES_POR_MODALIDADE: Record<Modalidade, SituacaoOferta[]> = {
+  VENDA: ['DISPONIVEL', 'RESERVADO', 'EM_NEGOCIACAO', 'VENDIDO', 'INDISPONIVEL', 'INATIVO'],
+  LOCACAO: ['DISPONIVEL', 'RESERVADO', 'EM_NEGOCIACAO', 'ALUGADO', 'INDISPONIVEL', 'INATIVO']
+}
+
+/** Valor monetário vindo de formulário ("1.234,56") ou número; saída em centavos. */
+const moeda = (obrigatoria: boolean) =>
+  z
+    .union([z.string(), z.number(), z.null(), z.undefined()])
+    .transform((v, ctx) => {
+      if (v == null || v === '') {
+        if (obrigatoria) ctx.addIssue({ code: 'custom', message: 'Informe o valor' })
+        return null
+      }
+      const c = paraCentavos(v)
+      if (c == null || c < 0) {
+        ctx.addIssue({ code: 'custom', message: 'Valor inválido' })
+        return null
+      }
+      return c
+    })
+
+const percentual = z.union([z.string(), z.number(), z.null(), z.undefined()]).transform((v, ctx) => {
+  if (v == null || v === '') return 0
+  const bp = paraPontosBase(v)
+  if (bp == null || bp > 10_000) {
+    ctx.addIssue({ code: 'custom', message: 'Percentual inválido' })
+    return 0
+  }
+  return bp
+})
+
+const area = z.union([z.string(), z.number(), z.null(), z.undefined()]).transform((v, ctx) => {
+  if (v == null || v === '') return null
+  const c = paraCentesimos(v)
+  if (c == null || c < 0) {
+    ctx.addIssue({ code: 'custom', message: 'Área inválida' })
+    return null
+  }
+  return c
+})
+
+const contagem = z.union([z.string(), z.number()]).transform((v, ctx) => {
+  const n = typeof v === 'number' ? v : v.trim() === '' ? 0 : Number(v)
+  if (!Number.isInteger(n) || n < 0 || n > 999) {
+    ctx.addIssue({ code: 'custom', message: 'Número inválido' })
+    return 0
+  }
+  return n
+})
+
+const ofertaSchema = z.object({ ativa: z.boolean(), valor: moeda(false), comissao: percentual })
+
+export const imovelSchema = z
+  .object({
+    tipo: z.enum(chaves(TIPOS_IMOVEL)),
+    finalidade: z.enum(chaves(FINALIDADES_IMOVEL)),
+    cep: z.string().refine(validarCep, 'CEP inválido').transform((v) => v.replace(/\D/g, '')),
+    logradouro: obrigatorio(200),
+    numero: obrigatorio(20),
+    complemento: opcional(100),
+    bairro: obrigatorio(100),
+    cidade: obrigatorio(100),
+    uf: z.enum(UFS, 'UF inválida'),
+    matricula: opcional(40),
+    cartorio: opcional(120),
+    inscricaoMunicipal: opcional(40),
+    areaConstruida: area,
+    areaTerreno: area,
+    dormitorios: contagem,
+    suites: contagem,
+    banheiros: contagem,
+    vagas: contagem,
+    descricaoComercial: opcional(5000),
+    observacoesInternas: opcional(4000),
+    condominio: moeda(false),
+    iptuAnual: moeda(false),
+    corretorId: id.nullish().transform((v) => v ?? null),
+    caracteristicas: z.array(id),
+    proprietarios: z.array(z.object({ pessoaId: id, percentual: percentual, principal: z.boolean() })),
+    venda: ofertaSchema,
+    locacao: ofertaSchema
+  })
+  .superRefine((d, ctx) => {
+    if (d.suites > d.dormitorios) ctx.addIssue({ code: 'custom', path: ['suites'], message: 'Suítes não podem exceder dormitórios' })
+    if (d.matricula && !d.cartorio) ctx.addIssue({ code: 'custom', path: ['cartorio'], message: 'Informe o cartório da matrícula' })
+    for (const [k, o] of [['venda', d.venda], ['locacao', d.locacao]] as const) {
+      if (o.ativa && !o.valor) ctx.addIssue({ code: 'custom', path: [k, 'valor'], message: 'Informe o valor' })
+    }
+  })
+
+/** Regras de composição de proprietários (validadas no backend com acesso aos dados internos). */
+export function validarProprietarios(lista: { pessoaId: number; percentual: number }[]): string | null {
+  if (!lista.length) return 'Informe ao menos um proprietário.'
+  if (new Set(lista.map((p) => p.pessoaId)).size !== lista.length) return 'Proprietário repetido.'
+  if (lista.some((p) => p.percentual <= 0)) return 'Cada proprietário deve ter participação maior que zero.'
+  const soma = lista.reduce((s, p) => s + p.percentual, 0)
+  if (soma !== 10_000) return `A soma das participações deve ser 100% (atual: ${(soma / 100).toLocaleString('pt-BR')}%).`
+  return null
+}
+
+export const listarImoveisSchema = z.object({
+  busca: z.string().trim().max(100).optional(),
+  modalidade: z.enum(chaves(MODALIDADES)).optional(),
+  situacao: z.enum(chaves(SITUACOES_OFERTA)).optional(),
+  tipo: z.enum(chaves(TIPOS_IMOVEL)).optional(),
+  finalidade: z.enum(chaves(FINALIDADES_IMOVEL)).optional(),
+  cidade: z.string().trim().max(100).optional(),
+  bairro: z.string().trim().max(100).optional(),
+  precoMin: moeda(false).optional(),
+  precoMax: moeda(false).optional(),
+  dormitoriosMin: z.number().int().min(0).optional(),
+  suitesMin: z.number().int().min(0).optional(),
+  vagasMin: z.number().int().min(0).optional(),
+  areaMin: area.optional(),
+  caracteristicas: z.array(id).optional(),
+  proprietarioId: id.optional(),
+  corretorId: id.optional(),
+  ordenar: z.enum(['codigo', 'recentes', 'valor_asc', 'valor_desc']).default('codigo'),
+  pagina: z.number().int().min(1).default(1),
+  porPagina: z.number().int().min(10).max(200).default(30)
+})
+
+export const alterarSituacaoSchema = z.object({
+  ofertaId: id,
+  situacao: z.enum(chaves(SITUACOES_OFERTA)),
+  motivo: obrigatorio(500).pipe(z.string().min(3, 'Descreva o motivo'))
+})
+
+export type ImovelInput = z.input<typeof imovelSchema>
+export type ImovelDados = z.output<typeof imovelSchema>
+export type ListarImoveisInput = z.input<typeof listarImoveisSchema>
+export type AlterarSituacaoInput = z.input<typeof alterarSituacaoSchema>

@@ -246,3 +246,136 @@ export const backupRegistro = sqliteTable('backup_registro', {
   mensagem: text('mensagem'),
   usuarioId: integer('usuario_id')
 })
+
+// ───────────── Imóveis ─────────────
+
+export const imovel = sqliteTable(
+  'imovel',
+  {
+    id: integer('id').primaryKey(),
+    codigo: integer('codigo').notNull().unique(),
+    tipo: text('tipo').notNull(),
+    finalidade: text('finalidade').notNull(),
+    cep: text('cep').notNull(),
+    logradouro: text('logradouro').notNull(),
+    numero: text('numero').notNull(),
+    complemento: text('complemento'),
+    bairro: text('bairro').notNull(),
+    cidade: text('cidade').notNull(),
+    uf: text('uf').notNull(),
+    enderecoBusca: text('endereco_busca').notNull(),
+    matricula: text('matricula'),
+    cartorio: text('cartorio'),
+    inscricaoMunicipal: text('inscricao_municipal'),
+    /** Áreas em centésimos de m² (ex.: 85,50 m² = 8550). */
+    areaConstruida: integer('area_construida'),
+    areaTerreno: integer('area_terreno'),
+    dormitorios: integer('dormitorios').notNull().default(0),
+    suites: integer('suites').notNull().default(0),
+    banheiros: integer('banheiros').notNull().default(0),
+    vagas: integer('vagas').notNull().default(0),
+    descricaoComercial: text('descricao_comercial'),
+    observacoesInternas: text('observacoes_internas'),
+    condominioCentavos: integer('condominio_centavos'),
+    iptuAnualCentavos: integer('iptu_anual_centavos'),
+    corretorId: integer('corretor_id').references(() => pessoa.id, { onDelete: 'restrict' }),
+    ...carimbos,
+    excluidoEm: text('excluido_em'),
+    excluidoPor: integer('excluido_por'),
+    motivoExclusao: text('motivo_exclusao')
+  },
+  (t) => [
+    index('ix_imovel_cidade_bairro').on(t.cidade, t.bairro),
+    index('ix_imovel_tipo').on(t.tipo),
+    uniqueIndex('ux_imovel_matricula').on(t.matricula, t.cartorio).where(sql`excluido_em IS NULL AND matricula IS NOT NULL`)
+  ]
+)
+
+export const imovelProprietario = sqliteTable(
+  'imovel_proprietario',
+  {
+    imovelId: integer('imovel_id')
+      .notNull()
+      .references(() => imovel.id, { onDelete: 'restrict' }),
+    pessoaId: integer('pessoa_id')
+      .notNull()
+      .references(() => pessoa.id, { onDelete: 'restrict' }),
+    /** Participação em pontos-base: 10.000 = 100%. A soma por imóvel deve ser 10.000. */
+    percentualBp: integer('percentual_bp').notNull(),
+    principal: integer('principal', { mode: 'boolean' }).notNull().default(false)
+  },
+  (t) => [primaryKey({ columns: [t.imovelId, t.pessoaId] }), index('ix_imovel_proprietario_pessoa').on(t.pessoaId)]
+)
+
+/** Oferta do imóvel por modalidade, com disponibilidade independente para venda e locação. */
+export const imovelOferta = sqliteTable(
+  'imovel_oferta',
+  {
+    id: integer('id').primaryKey(),
+    imovelId: integer('imovel_id')
+      .notNull()
+      .references(() => imovel.id, { onDelete: 'restrict' }),
+    modalidade: text('modalidade', { enum: ['VENDA', 'LOCACAO'] }).notNull(),
+    valorCentavos: integer('valor_centavos').notNull(),
+    comissaoBp: integer('comissao_bp').notNull().default(0),
+    situacao: text('situacao').notNull(),
+    situacaoDesde: text('situacao_desde').notNull(),
+    ...carimbos
+  },
+  (t) => [uniqueIndex('ux_imovel_oferta_modalidade').on(t.imovelId, t.modalidade), index('ix_imovel_oferta_busca').on(t.modalidade, t.situacao, t.valorCentavos)]
+)
+
+export const ofertaSituacaoHist = sqliteTable(
+  'oferta_situacao_hist',
+  {
+    id: integer('id').primaryKey(),
+    ofertaId: integer('oferta_id')
+      .notNull()
+      .references(() => imovelOferta.id, { onDelete: 'restrict' }),
+    de: text('de'),
+    para: text('para').notNull(),
+    motivo: text('motivo'),
+    usuarioId: integer('usuario_id'),
+    ts: text('ts').notNull()
+  },
+  (t) => [index('ix_oferta_hist_oferta').on(t.ofertaId)]
+)
+
+export const caracteristica = sqliteTable('caracteristica', {
+  id: integer('id').primaryKey(),
+  nome: text('nome').notNull().unique(),
+  grupo: text('grupo').notNull(),
+  ativa: integer('ativa', { mode: 'boolean' }).notNull().default(true)
+})
+
+export const imovelCaracteristica = sqliteTable(
+  'imovel_caracteristica',
+  {
+    imovelId: integer('imovel_id')
+      .notNull()
+      .references(() => imovel.id, { onDelete: 'restrict' }),
+    caracteristicaId: integer('caracteristica_id')
+      .notNull()
+      .references(() => caracteristica.id, { onDelete: 'restrict' })
+  },
+  (t) => [primaryKey({ columns: [t.imovelId, t.caracteristicaId] }), index('ix_imovel_caract_c').on(t.caracteristicaId)]
+)
+
+export const imovelFoto = sqliteTable(
+  'imovel_foto',
+  {
+    id: integer('id').primaryKey(),
+    imovelId: integer('imovel_id')
+      .notNull()
+      .references(() => imovel.id, { onDelete: 'restrict' }),
+    anexoId: integer('anexo_id')
+      .notNull()
+      .unique()
+      .references(() => anexo.id, { onDelete: 'restrict' }),
+    miniaturaUuid: text('miniatura_uuid').notNull(),
+    ordem: integer('ordem').notNull(),
+    capa: integer('capa', { mode: 'boolean' }).notNull().default(false),
+    legenda: text('legenda')
+  },
+  (t) => [index('ix_imovel_foto_imovel').on(t.imovelId, t.ordem)]
+)

@@ -162,4 +162,124 @@ export interface IndicadoresPainel {
   usuariosAtivos: number
   ultimoBackup: { ts: string; resultado: string } | null
   backupAtrasado: boolean
+  imoveis: IndicadoresImoveis | null
+}
+
+// ───────────── Imóveis ─────────────
+
+export interface OfertaDto {
+  id: number
+  modalidade: 'VENDA' | 'LOCACAO'
+  valorCentavos: number
+  comissaoBp: number
+  situacao: string
+  situacaoDesde: string
+}
+
+export interface ImovelResumo {
+  id: number
+  codigo: number
+  tipo: string
+  finalidade: string
+  endereco: string
+  bairro: string
+  cidade: string
+  uf: string
+  dormitorios: number
+  suites: number
+  vagas: number
+  areaConstruida: number | null
+  areaTerreno: number | null
+  venda: OfertaDto | null
+  locacao: OfertaDto | null
+  corretor: string | null
+  capa: string | null
+}
+
+export interface ProprietarioImovelDto {
+  pessoaId: number
+  nome: string
+  documento: string
+  percentualBp: number
+  principal: boolean
+}
+
+export interface ImovelDetalhe {
+  id: number
+  codigo: number
+  tipo: string
+  finalidade: string
+  cep: string
+  logradouro: string
+  numero: string
+  complemento: string | null
+  bairro: string
+  cidade: string
+  uf: string
+  areaConstruida: number | null
+  areaTerreno: number | null
+  dormitorios: number
+  suites: number
+  banheiros: number
+  vagas: number
+  descricaoComercial: string | null
+  condominioCentavos: number | null
+  iptuAnualCentavos: number | null
+  corretor: { id: number; nome: string } | null
+  caracteristicas: number[]
+  ofertas: OfertaDto[]
+  criadoEm: string
+  atualizadoEm: string
+  /** Presente apenas com a permissão imoveis.dados_internos.ver. */
+  internos: {
+    matricula: string | null
+    cartorio: string | null
+    inscricaoMunicipal: string | null
+    observacoesInternas: string | null
+    proprietarios: ProprietarioImovelDto[]
+  } | null
+}
+
+export interface CaracteristicaDto {
+  id: number
+  nome: string
+  grupo: string
+}
+
+export interface HistoricoSituacaoDto {
+  id: number
+  modalidade: 'VENDA' | 'LOCACAO'
+  de: string | null
+  para: string
+  motivo: string | null
+  usuario: string | null
+  ts: string
+}
+
+export interface FotoDto {
+  id: number
+  ordem: number
+  capa: boolean
+  legenda: string | null
+  nome: string
+  miniatura: string
+}
+
+export interface ImovelDoProprietario {
+  id: number
+  codigo: number
+  tipo: string
+  endereco: string
+  percentualBp: number
+  venda: string | null
+  locacao: string | null
+}
+
+export interface IndicadoresImoveis {
+  total: number
+  disponiveisVenda: number
+  disponiveisLocacao: number
+  alugados: number
+  emNegociacao: number
+  vendidos: number
 }

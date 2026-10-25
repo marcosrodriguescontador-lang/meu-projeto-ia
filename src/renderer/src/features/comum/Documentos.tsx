@@ -1,23 +1,35 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Download, ExternalLink, Paperclip, Trash2 } from 'lucide-react'
 import { useState } from 'react'
+import type { EntidadeAnexo } from '@shared/api'
 import type { AnexoDto } from '@shared/dto'
+import type { Permissao } from '@shared/permissoes'
 import { useSessao } from '@/app/sessao'
 import { Botao, Cartao, Confirmacao, Selecao, Tabela, useToast } from '@/components/ui'
 import { dataHora, tamanhoArquivo } from '@/lib/formato'
 import { rpc } from '@/lib/rpc'
 
-const CATEGORIAS = ['Documento de identificação', 'Comprovante de endereço', 'Comprovante de renda', 'Contrato social', 'Certidão', 'Procuração', 'Outros']
+const CONFIG: Record<EntidadeAnexo, { categorias: string[]; gerenciar: Permissao }> = {
+  pessoa: {
+    categorias: ['Documento de identificação', 'Comprovante de endereço', 'Comprovante de renda', 'Contrato social', 'Certidão', 'Procuração', 'Outros'],
+    gerenciar: 'pessoas.documentos.gerenciar'
+  },
+  imovel: {
+    categorias: ['Matrícula', 'Escritura', 'Carnê de IPTU', 'Planta', 'Habite-se', 'Laudo / vistoria', 'Autorização de venda/locação', 'Certidão', 'Outros'],
+    gerenciar: 'imoveis.documentos.gerenciar'
+  }
+}
 
-export function Documentos({ pessoaId }: { pessoaId: number }) {
+export function Documentos({ entidade, entidadeId }: { entidade: EntidadeAnexo; entidadeId: number }) {
   const { pode } = useSessao()
   const qc = useQueryClient()
   const toast = useToast()
-  const [categoria, setCategoria] = useState(CATEGORIAS[0]!)
+  const { categorias, gerenciar } = CONFIG[entidade]
+  const [categoria, setCategoria] = useState(categorias[0]!)
   const [enviando, setEnviando] = useState(false)
   const [remover, setRemover] = useState<AnexoDto | null>(null)
-  const chave = ['anexos', pessoaId]
-  const { data, isLoading } = useQuery({ queryKey: chave, queryFn: () => rpc('anexos.listar', { entidade: 'pessoa', entidadeId: pessoaId }) })
+  const chave = ['anexos', entidade, entidadeId]
+  const { data, isLoading } = useQuery({ queryKey: chave, queryFn: () => rpc('anexos.listar', { entidade, entidadeId }) })
   const acao = async (f: () => Promise<unknown>) => {
     try {
       await f()
@@ -30,9 +42,9 @@ export function Documentos({ pessoaId }: { pessoaId: number }) {
       titulo="Documentos anexados"
       semPadding
       acoes={
-        pode('pessoas.documentos.gerenciar') && (
+        pode(gerenciar) && (
           <>
-            <Selecao className="h-8 w-56 text-xs" opcoes={CATEGORIAS.map((c) => [c, c] as [string, string])} value={categoria} onChange={(e) => setCategoria(e.target.value)} />
+            <Selecao className="h-8 w-56 text-xs" opcoes={categorias.map((c) => [c, c] as [string, string])} value={categoria} onChange={(e) => setCategoria(e.target.value)} />
             <Botao
               tamanho="sm"
               variante="primario"
@@ -42,7 +54,7 @@ export function Documentos({ pessoaId }: { pessoaId: number }) {
                 acao(async () => {
                   setEnviando(true)
                   try {
-                    qc.setQueryData(chave, await rpc('anexos.adicionar', { entidade: 'pessoa', entidadeId: pessoaId, categoria }))
+                    qc.setQueryData(chave, await rpc('anexos.adicionar', { entidade, entidadeId, categoria }))
                   } finally {
                     setEnviando(false)
                   }
@@ -66,8 +78,8 @@ export function Documentos({ pessoaId }: { pessoaId: number }) {
               <Botao tamanho="sm" variante="fantasma" icone={<ExternalLink className="size-3.5" />} onClick={() => acao(() => rpc('anexos.abrir', { id: a.id }))}>
                 Abrir
               </Botao>
-              <Botao tamanho="sm" variante="fantasma" icone={<Download className="size-3.5" />} onClick={() => acao(async () => (await rpc('anexos.salvarComo', { id: a.id })) && toast.sucesso('Arquivo salvo.'))} />
-              {pode('pessoas.documentos.gerenciar') && <Botao tamanho="sm" variante="fantasma" icone={<Trash2 className="size-3.5" />} onClick={() => setRemover(a)} />}
+              <Botao tamanho="sm" variante="fantasma" icone={<Download className="size-3.5" />} title="Salvar cópia" onClick={() => acao(async () => (await rpc('anexos.salvarComo', { id: a.id })) && toast.sucesso('Arquivo salvo.'))} />
+              {pode(gerenciar) && <Botao tamanho="sm" variante="fantasma" icone={<Trash2 className="size-3.5" />} title="Remover" onClick={() => setRemover(a)} />}
             </td>
           </tr>
         ))}

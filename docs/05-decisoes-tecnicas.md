@@ -36,3 +36,21 @@ Agência, conta, dígito e chave PIX são cifrados com AES-256-GCM (chave `campo
 
 ## ADR-23 — Preferências de interface no navegador
 Somente o tema (claro/escuro) é guardado em `localStorage`. Nenhum dado de negócio ou de sessão fica no renderer: a sessão vive no processo principal.
+
+## ADR-24 — Ofertas por modalidade (Fase 2)
+Cada imóvel tem até duas ofertas (`imovel_oferta`, única por imóvel + modalidade), cada uma com valor, comissão prevista e situação próprias. Toda mudança de situação gera registro append-only em `oferta_situacao_hist` (triggers impedem alteração/exclusão). Triggers de banco também impedem combinações inválidas (ex.: venda "Alugado").
+- **Venda concluída** inativa automaticamente a oferta de locação disponível (se já estiver alugado, o contrato segue).
+- **Alugado/Vendido manual:** permitido nesta fase, com motivo obrigatório, para registrar a carteira existente. A partir das Fases 3 e 5 essas situações passam a ser definidas pelos contratos.
+- Ofertas reservadas, em negociação, alugadas ou vendidas não podem ser desativadas pelo cadastro; imóveis com oferta reservada, em negociação ou alugada não podem ser excluídos.
+
+## ADR-25 — Dados internos do imóvel
+Matrícula, cartório, inscrição municipal, observações internas e proprietários exigem `imoveis.dados_internos.ver`. Sem essa permissão a API não os devolve e, na edição, **preserva** os valores existentes (o usuário não consegue apagá-los nem alterá-los). Cadastrar imóvel exige essa permissão, pois proprietário é obrigatório.
+
+## ADR-26 — Fotos com miniatura cifrada
+Cada foto é um anexo (`categoria = Foto`) cifrado, com miniatura JPEG de 480 px gerada pelo `nativeImage` do Electron e também cifrada. A interface recebe apenas *data URLs* via RPC (o renderer não acessa arquivos). A integridade da imagem original é conferida por SHA-256 ao abrir. Limite: 60 fotos por imóvel, 20 MB por foto.
+
+## ADR-27 — Permissões novas em instalações existentes
+A configuração `permissoes_conhecidas` registra as permissões já vistas. Ao atualizar o sistema, permissões **novas** são concedidas aos perfis padrão que as preveem; permissões antigas removidas pelo administrador **não** são reconcedidas. O evento fica na auditoria (`PERMISSOES_ATUALIZADAS`).
+
+## ADR-28 — Ficha do imóvel em PDF
+HTML gerado no processo principal (função pura, testada) e convertido por `printToPDF` em janela oculta, sem JavaScript e sem rede. Duas versões: **comercial** (sem endereço exato, proprietários ou matrícula; apenas ofertas disponíveis) e **interna** (exige `imoveis.dados_internos.ver`). O logotipo de `assets/brand/logo.*` é embutido quando fornecido.

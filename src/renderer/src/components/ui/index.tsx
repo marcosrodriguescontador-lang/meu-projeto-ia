@@ -356,7 +356,7 @@ export function ProvedorToast({ children }: { children: ReactNode }) {
   const [itens, setItens] = useState<Toast[]>([])
   const notificar = useCallback((tom: Toast['tom'], texto: string) => {
     const id = Date.now() + Math.random()
-    setItens((x) => [...x, { id, tom, texto }])
+    setItens((x) => [...x.slice(-2), { id, tom, texto }])
     setTimeout(() => setItens((x) => x.filter((t) => t.id !== id)), tom === 'perigo' ? 7000 : 3500)
   }, [])
   return (

@@ -4,6 +4,8 @@ import type * as S from './schemas'
 
 type P<T> = T
 
+export type EntidadeAnexo = 'pessoa' | 'imovel'
+
 export interface ContratoApi {
   'sistema.estado': [void, D.EstadoSistema]
   'sistema.configurarInicial': [S.ConfiguracaoInicialInput, void]
@@ -43,8 +45,29 @@ export interface ContratoApi {
   'bancarios.remover': [{ id: number }, void]
   'bancarios.revelar': [{ id: number }, D.DadoBancarioRevelado]
 
-  'anexos.listar': [{ entidade: 'pessoa'; entidadeId: number }, D.AnexoDto[]]
-  'anexos.adicionar': [{ entidade: 'pessoa'; entidadeId: number; categoria: string }, D.AnexoDto[]]
+  'pessoas.imoveis': [{ id: number }, D.ImovelDoProprietario[]]
+
+  'imoveis.listar': [S.ListarImoveisInput, D.PaginaResultado<D.ImovelResumo>]
+  'imoveis.obter': [{ id: number }, D.ImovelDetalhe]
+  'imoveis.criar': [S.ImovelInput, { id: number }]
+  'imoveis.atualizar': [{ id: number; dados: S.ImovelInput }, void]
+  'imoveis.excluir': [{ id: number; motivo: string }, void]
+  'imoveis.alterarSituacao': [S.AlterarSituacaoInput, void]
+  'imoveis.historicoSituacao': [{ id: number }, D.HistoricoSituacaoDto[]]
+  'imoveis.historico': [{ id: number }, D.RegistroAuditoria[]]
+  'imoveis.caracteristicas': [void, D.CaracteristicaDto[]]
+  'imoveis.localidades': [void, { cidade: string; uf: string; bairros: string[] }[]]
+  'imoveis.ficha': [{ id: number; interna: boolean }, boolean]
+  'imoveis.fotos.listar': [{ imovelId: number }, D.FotoDto[]]
+  'imoveis.fotos.adicionar': [{ imovelId: number }, D.FotoDto[]]
+  'imoveis.fotos.ver': [{ id: number }, string]
+  'imoveis.fotos.legenda': [{ id: number; legenda: string }, void]
+  'imoveis.fotos.capa': [{ id: number }, void]
+  'imoveis.fotos.reordenar': [{ imovelId: number; ids: number[] }, void]
+  'imoveis.fotos.remover': [{ id: number; motivo: string }, void]
+
+  'anexos.listar': [{ entidade: EntidadeAnexo; entidadeId: number }, D.AnexoDto[]]
+  'anexos.adicionar': [{ entidade: EntidadeAnexo; entidadeId: number; categoria: string }, D.AnexoDto[]]
   'anexos.abrir': [{ id: number }, void]
   'anexos.salvarComo': [{ id: number }, boolean]
   'anexos.remover': [{ id: number; motivo: string }, void]

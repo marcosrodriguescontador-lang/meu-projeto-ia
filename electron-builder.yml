@@ -9,6 +9,7 @@ directories:
 files:
   - out/**
   - package.json
+  - assets/brand/**
 asarUnpack:
   - '**/*.node'
 npmRebuild: true

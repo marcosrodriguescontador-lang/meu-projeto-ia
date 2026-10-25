@@ -3,7 +3,7 @@
 Sistema desktop de gestão administrativa, comercial e financeira da **Status Negócios Imobiliários** (CRECI 038595-J).
 Funciona 100% offline no Windows, com banco de dados local cifrado, auditoria imutável e backup cifrado.
 
-**Situação:** Fase 1 (Fundação) concluída — ver [`docs/fase-1-entrega.md`](docs/fase-1-entrega.md).
+**Situação:** Fases 1 (Fundação) e 2 (Imóveis) concluídas — ver [`docs/fase-1-entrega.md`](docs/fase-1-entrega.md) e [`docs/fase-2-entrega.md`](docs/fase-2-entrega.md).
 
 ## Tecnologias
 Electron · React 19 · TypeScript · Tailwind CSS 4 · SQLite/SQLCipher (`better-sqlite3-multiple-ciphers`) · Drizzle ORM · Zod · Argon2id · Vitest · Playwright · electron-builder (NSIS)
@@ -16,7 +16,7 @@ Electron · React 19 · TypeScript · Tailwind CSS 4 · SQLite/SQLCipher (`bette
 | `npm test` | Testes automatizados (domínio, segurança, backup) |
 | `npm run typecheck` | Verificação de tipos (main e interface) |
 | `npm run build` | Compila para `out/` |
-| `node tests/e2e/fase1.e2e.cjs` | Teste ponta a ponta no app real (após `build`; em Linux sem monitor use `xvfb-run -a`) |
+| `node tests/e2e/fase1.e2e.cjs` / `fase2.e2e.cjs` | Testes ponta a ponta no app real (após `build`; em Linux sem monitor use `xvfb-run -a`) |
 | `npm run dist:win` | Gera o instalador Windows em `release/` (executar no Windows ou via CI) |
 | `npm run db:generate` | Gera migração a partir de `src/main/infra/db/schema.ts` |
 
@@ -27,7 +27,7 @@ Variável `STATUS_ERP_DADOS` permite apontar outra pasta de dados (testes).
 src/main/        processo principal: casos de uso, persistência, infraestrutura
   infra/         banco cifrado, criptografia, cofre de chaves, log, zip
   ipc/           roteador RPC (única porta de entrada da interface)
-  modules/       seguranca · pessoas · anexos · backup · configuracoes · painel
+  modules/       seguranca · pessoas · imoveis · anexos · backup · configuracoes · painel
   nucleo/        contexto, inicialização, utilitários
 src/preload/     ponte mínima (contextBridge)
 src/renderer/    interface React (design system Status em components/ui)

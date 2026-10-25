@@ -10,6 +10,7 @@ import { proximoNumero } from '../../nucleo/sequencia'
 import { normalizarBusca } from '../../nucleo/texto'
 import { auditar, historicoEntidade } from '../seguranca/auditoria'
 import { listarDadosBancarios } from './bancarios'
+import { vinculosImobiliarios } from '../imoveis/imoveis'
 
 const ativa = isNull(pessoa.excluidoEm)
 
@@ -139,8 +140,14 @@ function gravarFilhos(infra: Infra, id: number, dados: PessoaDados): void {
   }
 }
 
-/** Ponto de extensão: fases seguintes impedem remover papéis em uso (ex.: locatário com contrato ativo). */
-function verificarRemocaoPapeis(_infra: Infra, _id: number, _papeis: string[]): void {}
+/** Impede remover papéis em uso. Fases seguintes acrescentam contratos (locatário, fiador etc.). */
+function verificarRemocaoPapeis(infra: Infra, id: number, papeis: string[]): void {
+  const v = vinculosImobiliarios(infra, id)
+  if (papeis.includes('PROPRIETARIO') && v.proprietarioDe.length)
+    throw erro.regra(`Não é possível remover o papel Proprietário: a pessoa é proprietária do(s) imóvel(is) ${v.proprietarioDe.join(', ')}.`)
+  if (papeis.includes('CORRETOR') && v.corretorDe.length)
+    throw erro.regra(`Não é possível remover o papel Corretor: a pessoa é corretora responsável pelo(s) imóvel(is) ${v.corretorDe.join(', ')}.`)
+}
 
 function colunasPessoa(dados: PessoaDados) {
   return {
@@ -213,6 +220,9 @@ export function excluirPessoa(infra: Infra, ator: Ator, id: number, motivo: stri
       .where(and(eq(pessoaRelacao.relacionadaId, id), ativa))
       .all()
     if (relacionados.length) vinculos.push(`relacionada a ${relacionados.map((r) => r.nome).join(', ')}`)
+    const imoveis = vinculosImobiliarios(infra, id)
+    if (imoveis.proprietarioDe.length) vinculos.push(`proprietária do(s) imóvel(is) ${imoveis.proprietarioDe.join(', ')}`)
+    if (imoveis.corretorDe.length) vinculos.push(`corretora responsável pelo(s) imóvel(is) ${imoveis.corretorDe.join(', ')}`)
     if (vinculos.length) throw erro.regra(`Não é possível excluir: possui vínculos (${vinculos.join('; ')}).`)
     infra.db
       .update(pessoa)

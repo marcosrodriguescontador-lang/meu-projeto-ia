@@ -13,11 +13,15 @@ import { gravarConfig, lerConfig } from '../modules/configuracoes/configuracoes'
 import { indicadoresPainel } from '../modules/painel'
 import { adicionarDadoBancario, atualizarDadoBancario, removerDadoBancario, revelarDadoBancario } from '../modules/pessoas/bancarios'
 import { atualizarPessoa, criarPessoa, documentoEmUso, excluirPessoa, historicoPessoa, listarPessoas, obterPessoa } from '../modules/pessoas/pessoas'
-import { listarAuditoria, verificarIntegridadeAuditoria } from '../modules/seguranca/auditoria'
+import { auditar, listarAuditoria, verificarIntegridadeAuditoria } from '../modules/seguranca/auditoria'
 import { configurarInicial, estaConfigurado } from '../modules/seguranca/autenticacao'
 import { atualizarPerfil, criarPerfil, excluirPerfil, listarPerfis } from '../modules/seguranca/perfis'
 import { atualizarUsuario, carregarUsuarioSessao, criarUsuario, desbloquearUsuario, listarUsuarios, redefinirSenha } from '../modules/seguranca/usuarios'
 import type { Cofre } from '../infra/keystore'
+import { alterarSituacao, atualizarImovel, criarImovel, excluirImovel, historicoImovel, historicoSituacao, imoveisDoProprietario, listarCaracteristicas, listarImoveis, localidades, obterImovel } from '../modules/imoveis/imoveis'
+import { adicionarFotos, definirCapa, definirLegenda, fotosParaFicha, listarFotos, removerFoto, reordenarFotos, TIPOS_FOTO, verFoto } from '../modules/imoveis/fotos'
+import { gerarFichaHtml } from '../modules/imoveis/ficha'
+import { lerLogoDataUrl, gerarPdf } from './electron-util'
 import type { Metodos } from './roteador'
 
 export interface DependenciasMetodos {
@@ -26,6 +30,7 @@ export interface DependenciasMetodos {
   cofre: () => Cofre
   erroInicializacao: () => string | undefined
   reiniciar: () => void
+  dirMarca: string
 }
 
 const janela = () => BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]!
@@ -113,6 +118,63 @@ export function criarMetodos(dep: DependenciasMetodos): Metodos {
     'bancarios.atualizar': { executar: ({ infra, ator }, e) => atualizarDadoBancario(infra, ator, e.id, e.dados) },
     'bancarios.remover': { executar: ({ infra, ator }, e) => removerDadoBancario(infra, ator, e.id) },
     'bancarios.revelar': { executar: ({ infra, ator }, e) => revelarDadoBancario(infra, ator, e.id) },
+
+    'pessoas.imoveis': { executar: ({ infra, ator }, e) => imoveisDoProprietario(infra, ator, e.id) },
+
+    'imoveis.listar': { executar: ({ infra, ator }, e) => listarImoveis(infra, ator, e) },
+    'imoveis.obter': { executar: ({ infra, ator }, e) => obterImovel(infra, ator, e.id) },
+    'imoveis.criar': { executar: ({ infra, ator }, e) => criarImovel(infra, ator, e) },
+    'imoveis.atualizar': { executar: ({ infra, ator }, e) => atualizarImovel(infra, ator, e.id, e.dados) },
+    'imoveis.excluir': { executar: ({ infra, ator }, e) => excluirImovel(infra, ator, e.id, e.motivo) },
+    'imoveis.alterarSituacao': { executar: ({ infra, ator }, e) => alterarSituacao(infra, ator, e) },
+    'imoveis.historicoSituacao': { executar: ({ infra, ator }, e) => historicoSituacao(infra, ator, e.id) },
+    'imoveis.historico': { executar: ({ infra, ator }, e) => historicoImovel(infra, ator, e.id) },
+    'imoveis.caracteristicas': { executar: ({ infra }) => listarCaracteristicas(infra) },
+    'imoveis.localidades': { executar: ({ infra, ator }) => localidades(infra, ator) },
+    'imoveis.ficha': {
+      executar: async ({ infra, ator }, e) => {
+        if (e.interna) exigir(ator, 'imoveis.dados_internos.ver')
+        const imovel = obterImovel(infra, ator, e.id)
+        const nomes = new Map(listarCaracteristicas(infra).map((c) => [c.id, c.nome]))
+        const html = gerarFichaHtml({
+          imovel,
+          caracteristicas: imovel.caracteristicas.map((c) => nomes.get(c)!).filter(Boolean),
+          fotos: await fotosParaFicha(infra, e.id),
+          empresa: lerConfig(infra, 'empresa'),
+          logo: lerLogoDataUrl(dep.dirMarca),
+          interna: e.interna,
+          emitidoEm: infra.agora(),
+          emitidoPor: ator.nome
+        })
+        const r = await dialog.showSaveDialog(janela(), {
+          title: 'Salvar ficha do imóvel',
+          defaultPath: `ficha-imovel-${imovel.codigo}${e.interna ? '-interna' : ''}.pdf`,
+          filters: [{ name: 'PDF', extensions: ['pdf'] }]
+        })
+        if (r.canceled || !r.filePath) return false
+        await fs.writeFile(r.filePath, await gerarPdf(html, infra.caminhos.temporarios))
+        infra.bruto.transaction(() => auditar(infra, ator, { acao: 'FICHA_EMITIDA', entidade: 'imovel', entidadeId: e.id, descricao: e.interna ? 'Ficha interna' : 'Ficha comercial' }))()
+        void shell.openPath(r.filePath)
+        return true
+      }
+    },
+    'imoveis.fotos.listar': { executar: ({ infra, ator }, e) => listarFotos(infra, ator, e.imovelId) },
+    'imoveis.fotos.adicionar': {
+      executar: async ({ infra, ator }, e) => {
+        exigir(ator, 'imoveis.editar')
+        const r = await dialog.showOpenDialog(janela(), {
+          title: 'Adicionar fotos',
+          properties: ['openFile', 'multiSelections'],
+          filters: [{ name: 'Imagens', extensions: Object.keys(TIPOS_FOTO).map((x) => x.slice(1)) }]
+        })
+        return r.canceled ? listarFotos(infra, ator, e.imovelId) : adicionarFotos(infra, ator, e.imovelId, r.filePaths)
+      }
+    },
+    'imoveis.fotos.ver': { executar: ({ infra, ator }, e) => verFoto(infra, ator, e.id) },
+    'imoveis.fotos.legenda': { executar: ({ infra, ator }, e) => definirLegenda(infra, ator, e.id, e.legenda) },
+    'imoveis.fotos.capa': { executar: ({ infra, ator }, e) => definirCapa(infra, ator, e.id) },
+    'imoveis.fotos.reordenar': { executar: ({ infra, ator }, e) => reordenarFotos(infra, ator, e.imovelId, e.ids) },
+    'imoveis.fotos.remover': { executar: ({ infra, ator }, e) => removerFoto(infra, ator, e.id, e.motivo) },
 
     'anexos.listar': { executar: ({ infra, ator }, e) => listarAnexos(infra, ator, e.entidade, e.entidadeId) },
     'anexos.adicionar': {
@@ -218,6 +280,6 @@ export function criarMetodos(dep: DependenciasMetodos): Metodos {
       }
     },
 
-    'painel.indicadores': { executar: ({ infra }) => indicadoresPainel(infra) }
+    'painel.indicadores': { executar: ({ infra, ator }) => indicadoresPainel(infra, ator) }
   }
 }

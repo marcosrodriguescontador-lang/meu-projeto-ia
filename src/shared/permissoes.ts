@@ -12,6 +12,14 @@ export const PERMISSOES = {
   'pessoas.dados_bancarios.editar': 'Cadastrar e alterar dados bancários',
   'pessoas.documentos.ver': 'Ver documentos anexados',
   'pessoas.documentos.gerenciar': 'Anexar e remover documentos',
+  'imoveis.ver': 'Visualizar imóveis',
+  'imoveis.criar': 'Cadastrar imóveis',
+  'imoveis.editar': 'Editar imóveis, ofertas e fotos',
+  'imoveis.excluir': 'Excluir imóveis',
+  'imoveis.situacao': 'Alterar situação de venda/locação',
+  'imoveis.dados_internos.ver': 'Ver proprietários, matrícula e dados internos',
+  'imoveis.documentos.ver': 'Ver documentos do imóvel',
+  'imoveis.documentos.gerenciar': 'Anexar e remover documentos do imóvel',
   'auditoria.ver': 'Consultar auditoria',
   'backup.executar': 'Executar backup',
   'backup.restaurar': 'Restaurar backup',
@@ -26,6 +34,7 @@ export const GRUPOS_PERMISSAO: Record<string, string> = {
   usuarios: 'Usuários',
   perfis: 'Perfis',
   pessoas: 'Pessoas',
+  imoveis: 'Imóveis',
   auditoria: 'Auditoria',
   backup: 'Backup',
   configuracoes: 'Configurações'
@@ -41,17 +50,17 @@ export const PERFIS_PADRAO: { nome: string; descricao: string; permissoes: Permi
   {
     nome: 'Financeiro',
     descricao: 'Operações financeiras e dados bancários',
-    permissoes: ['pessoas.ver', 'pessoas.criar', 'pessoas.editar', 'pessoas.dados_bancarios.ver', 'pessoas.dados_bancarios.editar', 'pessoas.documentos.ver', 'backup.executar']
+    permissoes: ['pessoas.ver', 'pessoas.criar', 'pessoas.editar', 'pessoas.dados_bancarios.ver', 'pessoas.dados_bancarios.editar', 'pessoas.documentos.ver', 'imoveis.ver', 'imoveis.dados_internos.ver', 'imoveis.documentos.ver', 'backup.executar']
   },
   {
     nome: 'Corretor',
     descricao: 'Atendimento comercial',
-    permissoes: ['pessoas.ver', 'pessoas.criar', 'pessoas.editar', 'pessoas.documentos.ver', 'pessoas.documentos.gerenciar']
+    permissoes: ['pessoas.ver', 'pessoas.criar', 'pessoas.editar', 'pessoas.documentos.ver', 'pessoas.documentos.gerenciar', 'imoveis.ver', 'imoveis.criar', 'imoveis.editar', 'imoveis.situacao', 'imoveis.dados_internos.ver', 'imoveis.documentos.ver', 'imoveis.documentos.gerenciar']
   },
   {
     nome: 'Atendimento',
     descricao: 'Recepção e cadastro',
-    permissoes: ['pessoas.ver', 'pessoas.criar', 'pessoas.editar', 'pessoas.documentos.ver', 'pessoas.documentos.gerenciar']
+    permissoes: ['pessoas.ver', 'pessoas.criar', 'pessoas.editar', 'pessoas.documentos.ver', 'pessoas.documentos.gerenciar', 'imoveis.ver']
   },
-  { nome: 'Consulta', descricao: 'Somente leitura', permissoes: ['pessoas.ver'] }
+  { nome: 'Consulta', descricao: 'Somente leitura', permissoes: ['pessoas.ver', 'imoveis.ver'] }
 ]

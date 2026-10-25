@@ -72,14 +72,14 @@ erDiagram
 
 | Tabela | Campos principais |
 |---|---|
-| `imovel` | codigo (automático, único), tipo (casa, apto, sala, loja, galpão, terreno, rural…), finalidade (residencial/comercial/rural/misto), endereço completo, matricula, cartorio, inscricao_municipal, area_construida_cm2, area_terreno_cm2, dormitorios, suites, banheiros, vagas, descricao_comercial, condominio_centavos, iptu_anual_centavos, corretor_responsavel_id, ativo |
+| `imovel` | codigo (automático, único), tipo (casa, apto, sala, loja, galpão, terreno, rural…), finalidade (residencial/comercial/rural/mista), endereço completo, matricula + cartorio (únicos entre ativos), inscricao_municipal, area_construida / area_terreno (centésimos de m²), dormitorios, suites, banheiros, vagas, descricao_comercial, condominio_centavos, iptu_anual_centavos, corretor_responsavel_id, ativo |
 | `imovel_proprietario` | imovel_id, pessoa_id, percentual_bp (**soma = 10.000**), principal, recebe_repasse, dado_bancario_id |
 | `imovel_oferta` | imovel_id, modalidade (`VENDA`/`LOCACAO`), valor_centavos, comissao_bp, situacao (`DISPONIVEL, RESERVADO, EM_NEGOCIACAO, ALUGADO, VENDIDO, INDISPONIVEL, INATIVO`), desde. **Único (imovel_id, modalidade)** → mesmo imóvel em venda e locação com controles independentes |
 | `oferta_situacao_hist` | oferta_id, de, para, motivo, usuario, ts |
 | `caracteristica`, `imovel_caracteristica` | catálogo (piscina, elevador, mobiliado…) para busca |
-| `imovel_foto` | imovel_id, anexo_id, ordem, capa, legenda |
+| `imovel_foto` | imovel_id, anexo_id (único), miniatura_uuid, ordem, capa, legenda |
 
-Regras de consistência: ao vender, a oferta de locação passa automaticamente a `INATIVO` (com confirmação); ao alugar, a oferta de venda permanece (imóvel alugado pode ser vendido) mas marcada "ocupado".
+Regras de consistência (implementadas na Fase 2 — ver ADR-24): ao vender, a oferta de locação disponível passa automaticamente a `INATIVO`; ao alugar, a oferta de venda permanece (imóvel alugado pode ser vendido). Histórico de situação em `oferta_situacao_hist` (append-only).
 
 ## 5. Locações
 
