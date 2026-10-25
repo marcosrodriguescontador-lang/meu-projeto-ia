@@ -1,4 +1,4 @@
-# Manual básico de operação — Fases 1 e 2
+# Manual básico de operação — Fases 1 a 3
 
 ## Acesso
 - **Entrar:** usuário e senha. Após 5 tentativas inválidas o usuário fica bloqueado por 15 minutos (um administrador pode desbloquear antes em *Usuários e perfis*).
@@ -44,6 +44,35 @@ O **código** do imóvel é gerado ao salvar.
 **Exclusão:** exige motivo; não é permitida com oferta reservada, em negociação ou alugada.
 
 No cadastro da pessoa, a aba **Imóveis** lista os imóveis de que ela é proprietária. Não é possível remover o papel Proprietário (ou Corretor) de quem está vinculado a imóveis.
+
+## Locações e financeiro
+
+### Preparação (uma vez)
+1. **Financeiro → Contas bancárias → Nova conta**: cadastre a conta onde os aluguéis são recebidos com titularidade **Recursos de terceiros** e, se houver, a conta própria da imobiliária. Informe o saldo inicial e a data.
+2. **Financeiro → Índices e feriados**: informe mensalmente a variação do IGP-M/IPCA (necessária para reajustes) e os feriados municipais.
+
+### Contrato de locação
+1. **Locações → Novo contrato**: busque o imóvel (precisa ter oferta de locação), adicione o(s) locatário(s) e fiador(es), informe início e prazo (o término é calculado), aluguel, dia de vencimento, índice, taxas e garantia. Encargos (condomínio, IPTU, seguro) podem ser cobrados com o aluguel e destinados ao proprietário, a um terceiro (ex.: condomínio) ou à imobiliária.
+2. **Salvar** cria um **rascunho**. **Ativar contrato** registra os proprietários atuais como locadores, marca o imóvel como *Alugado* e, se houver caução, gera a cobrança da caução.
+3. Contrato ativo: aluguel, datas e partes mudam apenas por **aditivo** (aba *Reajustes e aditivos*), **reajuste** ou **rescisão**.
+
+### Rotina mensal
+1. **Cobranças do mês**: escolha a competência (mês de uso), confira a prévia e clique em **Gerar**. Gerar novamente não duplica. Contratos com reajuste pendente aparecem como *Bloqueada*.
+2. **Contas a receber**: clique no título → **Registrar recebimento**. Informe data, valor, conta e forma; multa e juros são calculados automaticamente (pode-se receber parcial). Desconto e dispensa de encargos exigem permissão específica. O ícone de PDF emite o **recibo**.
+3. **Repasses → Saldos a repassar**: mostra, por proprietário, apenas o que foi efetivamente recebido, já descontada a taxa. **Gerar repasse** (ou *Gerar todos*) cria o título a pagar; em **Repasses gerados → Pagar** registre a transferência. O **demonstrativo** em PDF detalha cada crédito e débito.
+4. **Inadimplência**: títulos vencidos com encargos até hoje. Selecione títulos do mesmo contrato e **Renegociar** para parcelar.
+5. **Reajustes**: aniversários dos próximos 45 dias com o índice acumulado e o novo valor. **Aplicar** ou **Dispensar** (com motivo). Índice negativo não reduz o aluguel, salvo cláusula marcada no contrato.
+
+### Lançamentos avulsos (aba do contrato)
+- **Cobrança ao locatário**: entra na próxima cobrança (ex.: 2ª via de chave). Valor negativo = crédito ao locatário por conta do proprietário (ex.: abatimento de pintura).
+- **Débito ao proprietário**: descontado imediatamente do saldo a repassar (ex.: conserto pago pela imobiliária).
+
+### Correções
+- **Estornar** uma baixa (ícone na lista de baixas do título) desfaz caixa, saldos e receitas; fica tudo no histórico.
+- **Cancelar título** (sem baixas) permite gerar novamente a cobrança da competência.
+
+### Rescisão
+Aba **Rescisão** do contrato: informe a entrega das chaves e veja a memória de cálculo (aluguel proporcional, multa proporcional ao prazo restante, caução a devolver). Ao confirmar (digitando RESCINDIR), o sistema gera a cobrança proporcional, o título da rescisão e a devolução da caução, e libera o imóvel para locação.
 
 ## Usuários e perfis (administrador)
 - **Novo usuário:** nome, login, perfil e senha temporária.

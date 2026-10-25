@@ -19,7 +19,7 @@ jobs:
       - run: npm test
       - run: npm run build
       - name: E2E (Electron + Playwright)
-        run: xvfb-run -a node tests/e2e/fase1.e2e.cjs && xvfb-run -a node tests/e2e/fase2.e2e.cjs
+        run: xvfb-run -a node tests/e2e/fase1.e2e.cjs && xvfb-run -a node tests/e2e/fase2.e2e.cjs && xvfb-run -a node tests/e2e/fase3.e2e.cjs
         env:
           E2E_CAPTURAS: ${{ runner.temp }}/capturas
       - uses: actions/upload-artifact@v4

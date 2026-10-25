@@ -135,7 +135,7 @@ export function Indicador({ rotulo, valor, detalhe, tom = 'neutro', icone }: { r
   )
 }
 
-export function Selo({ children, tom = 'neutro' }: { children: ReactNode; tom?: 'neutro' | 'destaque' | 'alerta' | 'perigo' | 'escuro' }) {
+export function Selo({ children, tom = 'neutro', title }: { children: ReactNode; tom?: 'neutro' | 'destaque' | 'alerta' | 'perigo' | 'escuro'; title?: string }) {
   const cls = {
     neutro: 'bg-superficie-2 text-texto-2 border-borda',
     destaque: 'bg-destaque-suave text-destaque border-transparent',
@@ -143,7 +143,11 @@ export function Selo({ children, tom = 'neutro' }: { children: ReactNode; tom?: 
     perigo: 'bg-perigo-suave text-perigo border-transparent',
     escuro: 'bg-marca text-marca-texto border-transparent'
   }[tom]
-  return <span className={cx('inline-flex items-center rounded border px-1.5 py-0.5 text-[11px] font-medium', cls)}>{children}</span>
+  return (
+    <span title={title} className={cx('inline-flex items-center rounded border px-1.5 py-0.5 text-[11px] font-medium whitespace-nowrap', cls)}>
+      {children}
+    </span>
+  )
 }
 
 export function Tabela({ colunas, children, vazio, carregando }: { colunas: (string | { t: string; cls?: string })[]; children: ReactNode; vazio?: boolean; carregando?: boolean }) {

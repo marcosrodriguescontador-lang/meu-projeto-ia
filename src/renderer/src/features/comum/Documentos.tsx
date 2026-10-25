@@ -17,6 +17,10 @@ const CONFIG: Record<EntidadeAnexo, { categorias: string[]; gerenciar: Permissao
   imovel: {
     categorias: ['Matrícula', 'Escritura', 'Carnê de IPTU', 'Planta', 'Habite-se', 'Laudo / vistoria', 'Autorização de venda/locação', 'Certidão', 'Outros'],
     gerenciar: 'imoveis.documentos.gerenciar'
+  },
+  contrato: {
+    categorias: ['Contrato assinado', 'Laudo de vistoria', 'Apólice de seguro', 'Documentos do fiador', 'Aditivo', 'Distrato / termo de entrega', 'Comprovante', 'Outros'],
+    gerenciar: 'locacoes.gerenciar'
   }
 }
 

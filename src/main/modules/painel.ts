@@ -3,6 +3,7 @@ import type { IndicadoresPainel } from '@shared/dto'
 import { pessoa, pessoaPapel, usuario } from '../infra/db/schema'
 import { pode, type Ator, type Infra } from '../nucleo/contexto'
 import { indicadoresImoveis } from './imoveis/imoveis'
+import { indicadoresFinanceiros } from './financeiro/indicadores'
 import { backupDevido, ultimoBackupComSucesso } from './backup/backup'
 
 export function indicadoresPainel(infra: Infra, ator: Ator): IndicadoresPainel {
@@ -20,6 +21,7 @@ export function indicadoresPainel(infra: Infra, ator: Ator): IndicadoresPainel {
     usuariosAtivos: infra.db.select({ n: sql<number>`count(*)` }).from(usuario).where(eq(usuario.ativo, true)).get()!.n,
     ultimoBackup: ultimo ? { ts: ultimo.ts, resultado: ultimo.resultado } : null,
     backupAtrasado: backupDevido(infra),
-    imoveis: pode(ator, 'imoveis.ver') ? indicadoresImoveis(infra) : null
+    imoveis: pode(ator, 'imoveis.ver') ? indicadoresImoveis(infra) : null,
+    financeiro: pode(ator, 'financeiro.ver') ? indicadoresFinanceiros(infra) : null
   }
 }

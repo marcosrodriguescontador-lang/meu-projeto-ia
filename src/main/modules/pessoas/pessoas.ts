@@ -11,6 +11,7 @@ import { normalizarBusca } from '../../nucleo/texto'
 import { auditar, historicoEntidade } from '../seguranca/auditoria'
 import { listarDadosBancarios } from './bancarios'
 import { vinculosImobiliarios } from '../imoveis/imoveis'
+import { vinculosContratuais } from '../locacoes/contratos'
 
 const ativa = isNull(pessoa.excluidoEm)
 
@@ -145,6 +146,12 @@ function verificarRemocaoPapeis(infra: Infra, id: number, papeis: string[]): voi
   const v = vinculosImobiliarios(infra, id)
   if (papeis.includes('PROPRIETARIO') && v.proprietarioDe.length)
     throw erro.regra(`Não é possível remover o papel Proprietário: a pessoa é proprietária do(s) imóvel(is) ${v.proprietarioDe.join(', ')}.`)
+  const contratos = vinculosContratuais(infra, id)
+  for (const papel of ['LOCATARIO', 'FIADOR'] as const) {
+    const em = contratos.filter((c) => c.papel === papel)
+    if (papeis.includes(papel) && em.length)
+      throw erro.regra(`Não é possível remover o papel ${papel === 'LOCATARIO' ? 'Locatário' : 'Fiador'}: há contrato(s) ativo(s) ou em rascunho nº ${em.map((c) => c.numero).join(', ')}.`)
+  }
   if (papeis.includes('CORRETOR') && v.corretorDe.length)
     throw erro.regra(`Não é possível remover o papel Corretor: a pessoa é corretora responsável pelo(s) imóvel(is) ${v.corretorDe.join(', ')}.`)
 }
@@ -223,6 +230,9 @@ export function excluirPessoa(infra: Infra, ator: Ator, id: number, motivo: stri
     const imoveis = vinculosImobiliarios(infra, id)
     if (imoveis.proprietarioDe.length) vinculos.push(`proprietária do(s) imóvel(is) ${imoveis.proprietarioDe.join(', ')}`)
     if (imoveis.corretorDe.length) vinculos.push(`corretora responsável pelo(s) imóvel(is) ${imoveis.corretorDe.join(', ')}`)
+    const contratos = vinculosContratuais(infra, id)
+    if (contratos.length) vinculos.push(`parte do(s) contrato(s) ${[...new Set(contratos.map((c) => c.numero))].join(', ')}`)
+    if (infra.bruto.prepare('SELECT 1 FROM titulo WHERE pessoa_id = ? LIMIT 1').get(id)) vinculos.push('possui títulos financeiros')
     if (vinculos.length) throw erro.regra(`Não é possível excluir: possui vínculos (${vinculos.join('; ')}).`)
     infra.db
       .update(pessoa)

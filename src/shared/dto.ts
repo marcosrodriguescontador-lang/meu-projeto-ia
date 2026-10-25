@@ -163,6 +163,7 @@ export interface IndicadoresPainel {
   ultimoBackup: { ts: string; resultado: string } | null
   backupAtrasado: boolean
   imoveis: IndicadoresImoveis | null
+  financeiro: import('./dto-financeiro').IndicadoresFinanceiros | null
 }
 
 // ───────────── Imóveis ─────────────

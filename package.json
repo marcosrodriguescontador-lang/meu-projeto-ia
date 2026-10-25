@@ -1,7 +1,7 @@
 {
   "name": "status-erp",
   "productName": "STATUS ERP IMOBILIÁRIO",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Sistema de gestão administrativa, comercial e financeira — Status Negócios Imobiliários",
   "author": "Status Negócios Imobiliários",
   "private": true,

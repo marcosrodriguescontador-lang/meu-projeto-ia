@@ -1,4 +1,4 @@
-import { Building2, ChevronLeft, ClipboardList, FileSignature, Gauge, HardDriveDownload, Handshake, KeyRound, Landmark, Lock, LogOut, Moon, Settings, ShieldCheck, Sun, Users, Wrench, UserCog } from 'lucide-react'
+import { AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Building2, CalendarCheck, ChevronLeft, Percent, Send, TrendingUp, ClipboardList, FileSignature, Gauge, HardDriveDownload, Handshake, KeyRound, Landmark, Lock, LogOut, Moon, Settings, ShieldCheck, Sun, Users, Wrench, UserCog } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { LimiteErro } from '@/components/LimiteErro'
@@ -29,11 +29,23 @@ const GRUPOS: { titulo: string; itens: ItemMenu[] }[] = [
   {
     titulo: 'Operações',
     itens: [
-      { rotulo: 'Locações', icone: <KeyRound />, fase: 3 },
-      { rotulo: 'Financeiro', icone: <Landmark />, fase: 4 },
+      { rota: '/locacoes', rotulo: 'Locações', icone: <KeyRound />, permissao: 'locacoes.ver' },
+      { rota: '/reajustes', rotulo: 'Reajustes', icone: <TrendingUp />, permissao: 'locacoes.ver' },
       { rotulo: 'Vendas e CRM', icone: <Handshake />, fase: 5 },
       { rotulo: 'Documentos', icone: <FileSignature />, fase: 6 },
       { rotulo: 'Manutenção', icone: <Wrench />, fase: 6 }
+    ]
+  },
+  {
+    titulo: 'Financeiro',
+    itens: [
+      { rota: '/financeiro/receber', rotulo: 'Contas a receber', icone: <ArrowDownToLine />, permissao: 'financeiro.ver' },
+      { rota: '/financeiro/cobrancas', rotulo: 'Cobranças do mês', icone: <CalendarCheck />, permissao: 'financeiro.ver' },
+      { rota: '/financeiro/inadimplencia', rotulo: 'Inadimplência', icone: <AlertTriangle />, permissao: 'financeiro.ver' },
+      { rota: '/financeiro/repasses', rotulo: 'Repasses', icone: <Send />, permissao: 'financeiro.ver' },
+      { rota: '/financeiro/pagar', rotulo: 'Contas a pagar', icone: <ArrowUpFromLine />, permissao: 'financeiro.ver' },
+      { rota: '/financeiro/contas', rotulo: 'Contas bancárias', icone: <Landmark />, permissao: 'financeiro.ver' },
+      { rota: '/financeiro/indices', rotulo: 'Índices e feriados', icone: <Percent /> }
     ]
   },
   {

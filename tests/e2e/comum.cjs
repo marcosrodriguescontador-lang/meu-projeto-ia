@@ -102,3 +102,45 @@ function gerarPng(caminho, largura, altura, [r1, g1, b1], [r2, g2, b2]) {
 }
 
 module.exports = { RAIZ, SAIDA, SENHA_ADMIN, abrir, foto, configurar, entrar, simularDialogos, gerarPng }
+
+async function navegar(j, nome) {
+  await j.getByRole('navigation').getByRole('link', { name: nome, exact: true }).click()
+}
+
+async function novaPessoa(j, { nome, cpf, papel, creci }) {
+  await navegar(j, 'Pessoas')
+  await j.getByRole('button', { name: 'Nova pessoa' }).click()
+  await j.getByLabel('CPF').fill(cpf)
+  await j.getByLabel('Nome completo').fill(nome)
+  await j.getByLabel(papel, { exact: true }).check()
+  if (creci) await j.getByLabel('CRECI do corretor').fill(creci)
+  await j.getByRole('button', { name: 'Salvar' }).click()
+  await j.getByRole('heading', { name: nome }).waitFor()
+}
+
+async function novoImovel(j, { proprietario, logradouro, numero, bairro, cidade, aluguel, venda }) {
+  await navegar(j, 'Imóveis')
+  await j.getByRole('button', { name: 'Novo imóvel' }).click()
+  await j.getByRole('combobox', { name: 'Tipo', exact: true }).selectOption('APARTAMENTO')
+  await j.getByLabel('CEP').fill('13010-100')
+  await j.getByLabel('Logradouro').fill(logradouro)
+  await j.getByLabel('Número').fill(numero)
+  await j.getByLabel('Bairro').fill(bairro)
+  await j.getByLabel('Cidade').fill(cidade)
+  await j.getByRole('button', { name: 'Valores e disponibilidade' }).click()
+  if (venda) {
+    await j.getByLabel('Ofertar para venda').check()
+    await j.getByLabel('Valor de venda').fill(venda)
+  }
+  await j.getByLabel('Ofertar para locação').check()
+  await j.getByLabel('Aluguel mensal').fill(aluguel)
+  await j.getByRole('button', { name: /^Proprietários/ }).click()
+  await j.getByPlaceholder(/Buscar pessoa para vincular/).fill(proprietario.slice(0, 5))
+  await j.getByRole('button', { name: new RegExp(proprietario) }).click()
+  await j.getByRole('button', { name: 'Salvar' }).click()
+  await j.getByText(/Código \d+ ·/).waitFor()
+}
+
+module.exports.navegar = navegar
+module.exports.novaPessoa = novaPessoa
+module.exports.novoImovel = novoImovel

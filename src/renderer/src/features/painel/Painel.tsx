@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { Building2, HardDriveDownload, UserPlus, Users } from 'lucide-react'
+import { Building2, HardDriveDownload, KeyRound, UserPlus, Users } from 'lucide-react'
+import { formatarMoeda } from '@shared/dinheiro'
 import { Link } from 'react-router-dom'
 import { PAPEIS, type Papel } from '@shared/schemas'
 import { useSessao } from '@/app/sessao'
@@ -45,6 +46,16 @@ export function Painel() {
           </Aviso>
         </div>
       )}
+      {data?.financeiro && (
+        <div className="mb-4 grid grid-cols-4 gap-4">
+          <Indicador rotulo="Contratos ativos" valor={data.financeiro.contratosAtivos} detalhe={`${data.financeiro.contratosVencendo60} vencendo em 60 dias · ${data.financeiro.reajustesPendentes} reajuste(s) a analisar`} icone={<KeyRound className="size-4" />} />
+          <Indicador rotulo="A receber no mês" valor={formatarMoeda(data.financeiro.receberMesCentavos)} detalhe="Em aberto até o fim do mês" />
+          <Indicador rotulo="Aluguéis vencidos" valor={formatarMoeda(data.financeiro.vencidosCentavos)} tom={data.financeiro.vencidosQuantidade ? 'perigo' : 'neutro'} detalhe={`${data.financeiro.vencidosQuantidade} título(s)`} />
+          <Indicador rotulo="Repasses pendentes" valor={formatarMoeda(data.financeiro.repassesPendentesCentavos)} detalhe="Recursos de terceiros a repassar" />
+          <Indicador rotulo="Receita própria no mês" valor={formatarMoeda(data.financeiro.receitaPropriaMesCentavos)} tom="destaque" detalhe="Taxas e receitas da imobiliária (regime de caixa)" />
+          <Indicador rotulo="Saldo em contas" valor={formatarMoeda(data.financeiro.saldoContasCentavos)} detalhe="Próprias + terceiros" />
+        </div>
+      )}
       {data?.imoveis && (
         <div className="mb-4 grid grid-cols-4 gap-4">
           <Indicador rotulo="Imóveis cadastrados" valor={data.imoveis.total} icone={<Building2 className="size-4" />} />
@@ -84,7 +95,6 @@ export function Painel() {
         </Cartao>
         <Cartao titulo="Próximas etapas">
           <ul className="space-y-2 text-sm text-texto-2">
-            <li>Contratos, aluguéis e repasses — Fase 3</li>
             <li>Saldo, receitas e resultado — Fase 4</li>
             <li>Comissões e funil — Fase 5</li>
           </ul>

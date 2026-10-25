@@ -54,3 +54,35 @@ A configuração `permissoes_conhecidas` registra as permissões já vistas. Ao 
 
 ## ADR-28 — Ficha do imóvel em PDF
 HTML gerado no processo principal (função pura, testada) e convertido por `printToPDF` em janela oculta, sem JavaScript e sem rede. Duas versões: **comercial** (sem endereço exato, proprietários ou matrícula; apenas ofertas disponíveis) e **interna** (exige `imoveis.dados_internos.ver`). O logotipo de `assets/brand/logo.*` é embutido quando fornecido.
+
+## ADR-29 — Razão em partidas dobradas por baixo de títulos (Fase 3)
+Toda movimentação financeira gera um `lancamento` com `partida`s balanceadas (Σ débitos = Σ créditos, validado em código e verificável na tela *Contas bancárias → Verificar razão*). Triggers impedem alterar/excluir lançamentos, partidas, baixas e itens de título; correções são feitas por **estorno** (lançamento inverso vinculado). Plano de contas de sistema:
+
+| Conta | Natureza | Uso |
+|---|---|---|
+| 1.1.01 Disponibilidades | Ativo | Caixa e bancos (subconta = conta financeira) |
+| 2.1.01 Proprietários — a repassar | Passivo (terceiros) | Subconta = proprietário |
+| 2.1.02 Terceiros — a pagar | Passivo (terceiros) | Condomínio, prefeitura, prestadores do proprietário |
+| 2.1.03 Cauções | Passivo (terceiros) | Subconta = locatário |
+| 3.1.01–3.1.04 Receitas | Receita (própria) | Administração, intermediação, multas/juros (se da imobiliária), outras |
+
+**Consequência:** emitir cobrança não afeta o razão; receber aluguel credita o proprietário (passivo), e só a taxa vira receita. "Saldo a repassar" é o saldo credor das partidas ainda não incluídas em repasse.
+
+## ADR-30 — Títulos sem tabela de parcelas
+O modelo de dados previa `titulo_parcela`. Optou-se por **um título por vencimento** (parcelas de renegociação são títulos irmãos vinculados por `renegociacao_id`). Simplifica saldo, baixa e consulta sem perda de rastreabilidade.
+
+## ADR-31 — Composição por itens e alocação proporcional
+Cada título tem itens com **destino** (proprietário, terceiro, imobiliária, caução, passivo) e taxa *congelada* na emissão (`taxa_bp`, `taxa_tipo`): alterar a taxa do contrato não afeta cobranças já emitidas. Pagamento parcial é alocado proporcionalmente aos saldos dos itens (maiores restos, sem perda de centavos); o rateio entre coproprietários usa a participação do contrato e o resto vai ao principal.
+
+## ADR-32 — Competência, vencimento e pro rata
+Competência = mês de uso; vencimento no dia contratual do **mês seguinte** (aluguel pós-pago, art. 42 da Lei 8.245/91), prorrogado ao próximo dia útil bancário (fins de semana, feriados nacionais incluindo Carnaval/Sexta-feira Santa/Corpus Christi calculados pela Páscoa, e feriados locais cadastrados). Juros contam do vencimento original quando o pagamento ocorre após o vencimento útil. Primeiro e último mês proporcionais por dias reais (Q11).
+
+## ADR-33 — Aluguel por vigência
+`aluguel_vigencia` registra o valor a partir de cada competência (contrato, reajuste, aditivo). Mudanças não podem retroagir a competências já cobradas. A geração é **bloqueada** para contratos com reajuste pendente até que o usuário aplique ou dispense (Q13).
+
+## ADR-34 — Repasse por marcação de partidas
+Gerar repasse marca (`repasse_id`) todas as partidas pendentes do favorecido e cria um título a pagar com o saldo exato. Isso torna o demonstrativo reprodutível. Regras: estorno de recebimento incluído em repasse **não pago** exige cancelar o repasse; após o pagamento, o estorno gera saldo devedor compensado nos próximos créditos. Pagamentos são recusados se a conta não tiver saldo.
+
+## Pendências registradas para a Fase 4
+- Transferência entre contas (ex.: mover a taxa da conta de terceiros para a conta própria), conciliação bancária e importação OFX/CSV.
+- Vistorias de entrada/saída com checklist (previstas para a Fase 6).

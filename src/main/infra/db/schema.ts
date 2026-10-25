@@ -379,3 +379,392 @@ export const imovelFoto = sqliteTable(
   },
   (t) => [index('ix_imovel_foto_imovel').on(t.imovelId, t.ordem)]
 )
+
+// ───────────── Cadastros auxiliares financeiros ─────────────
+
+export const feriado = sqliteTable('feriado', {
+  id: integer('id').primaryKey(),
+  data: text('data').notNull().unique(),
+  descricao: text('descricao').notNull(),
+  abrangencia: text('abrangencia').notNull().default('MUNICIPAL')
+})
+
+export const indiceEconomico = sqliteTable('indice_economico', {
+  id: integer('id').primaryKey(),
+  sigla: text('sigla').notNull().unique(),
+  nome: text('nome').notNull()
+})
+
+/** Variação mensal em partes por milhão (0,45% = 4.500 ppm). */
+export const indiceValor = sqliteTable(
+  'indice_valor',
+  {
+    indiceId: integer('indice_id')
+      .notNull()
+      .references(() => indiceEconomico.id, { onDelete: 'restrict' }),
+    competencia: text('competencia').notNull(),
+    variacaoPpm: integer('variacao_ppm').notNull(),
+    informadoPor: integer('informado_por'),
+    informadoEm: text('informado_em').notNull()
+  },
+  (t) => [primaryKey({ columns: [t.indiceId, t.competencia] })]
+)
+
+export const contaGerencial = sqliteTable('conta_gerencial', {
+  id: integer('id').primaryKey(),
+  codigo: text('codigo').notNull().unique(),
+  nome: text('nome').notNull(),
+  natureza: text('natureza', { enum: ['ATIVO', 'PASSIVO', 'RECEITA', 'DESPESA'] }).notNull(),
+  recurso: text('recurso', { enum: ['PROPRIO', 'TERCEIROS'] }).notNull(),
+  sistema: integer('sistema', { mode: 'boolean' }).notNull().default(false)
+})
+
+export const contaFinanceira = sqliteTable('conta_financeira', {
+  id: integer('id').primaryKey(),
+  nome: text('nome').notNull().unique(),
+  tipo: text('tipo').notNull(),
+  bancoCodigo: text('banco_codigo'),
+  agencia: text('agencia'),
+  conta: text('conta'),
+  titularidade: text('titularidade', { enum: ['PROPRIO', 'TERCEIROS'] }).notNull(),
+  saldoInicialCentavos: integer('saldo_inicial_centavos').notNull().default(0),
+  dataSaldoInicial: text('data_saldo_inicial').notNull(),
+  ativa: integer('ativa', { mode: 'boolean' }).notNull().default(true),
+  ...carimbos
+})
+
+// ───────────── Locações ─────────────
+
+export const contratoLocacao = sqliteTable(
+  'contrato_locacao',
+  {
+    id: integer('id').primaryKey(),
+    numero: integer('numero').notNull().unique(),
+    imovelId: integer('imovel_id')
+      .notNull()
+      .references(() => imovel.id, { onDelete: 'restrict' }),
+    tipo: text('tipo').notNull(),
+    situacao: text('situacao', { enum: ['RASCUNHO', 'ATIVO', 'ENCERRADO', 'RESCINDIDO'] }).notNull(),
+    dataInicio: text('data_inicio').notNull(),
+    dataFim: text('data_fim').notNull(),
+    aluguelCentavos: integer('aluguel_centavos').notNull(),
+    diaVencimento: integer('dia_vencimento').notNull(),
+    indiceId: integer('indice_id').references(() => indiceEconomico.id, { onDelete: 'restrict' }),
+    periodicidadeReajusteMeses: integer('periodicidade_reajuste_meses').notNull().default(12),
+    proximoReajuste: text('proximo_reajuste'),
+    reajusteNegativo: integer('reajuste_negativo', { mode: 'boolean' }).notNull().default(false),
+    taxaAdministracaoBp: integer('taxa_administracao_bp').notNull(),
+    taxaIntermediacaoBp: integer('taxa_intermediacao_bp').notNull().default(0),
+    multaAtrasoBp: integer('multa_atraso_bp').notNull(),
+    jurosMesBp: integer('juros_mes_bp').notNull(),
+    destinoEncargos: text('destino_encargos', { enum: ['PROPRIETARIO', 'IMOBILIARIA'] }).notNull(),
+    multaRescisoriaAlugueis: integer('multa_rescisoria_alugueis').notNull().default(3),
+    garantiaTipo: text('garantia_tipo').notNull(),
+    garantiaValorCentavos: integer('garantia_valor_centavos'),
+    garantiaSeguradora: text('garantia_seguradora'),
+    garantiaApolice: text('garantia_apolice'),
+    garantiaVigenciaFim: text('garantia_vigencia_fim'),
+    observacoes: text('observacoes'),
+    ativadoEm: text('ativado_em'),
+    encerradoEm: text('encerrado_em'),
+    ...carimbos
+  },
+  (t) => [index('ix_contrato_imovel').on(t.imovelId), index('ix_contrato_situacao').on(t.situacao)]
+)
+
+export const contratoParte = sqliteTable(
+  'contrato_parte',
+  {
+    contratoId: integer('contrato_id')
+      .notNull()
+      .references(() => contratoLocacao.id, { onDelete: 'restrict' }),
+    pessoaId: integer('pessoa_id')
+      .notNull()
+      .references(() => pessoa.id, { onDelete: 'restrict' }),
+    papel: text('papel', { enum: ['LOCADOR', 'LOCATARIO', 'FIADOR'] }).notNull(),
+    percentualBp: integer('percentual_bp').notNull().default(0),
+    principal: integer('principal', { mode: 'boolean' }).notNull().default(false)
+  },
+  (t) => [primaryKey({ columns: [t.contratoId, t.pessoaId, t.papel] }), index('ix_contrato_parte_pessoa').on(t.pessoaId)]
+)
+
+/** Encargos recorrentes cobrados com o aluguel (condomínio, IPTU, seguro etc.). */
+export const contratoEncargo = sqliteTable('contrato_encargo', {
+  id: integer('id').primaryKey(),
+  contratoId: integer('contrato_id')
+    .notNull()
+    .references(() => contratoLocacao.id, { onDelete: 'restrict' }),
+  tipo: text('tipo').notNull(),
+  descricao: text('descricao').notNull(),
+  valorCentavos: integer('valor_centavos').notNull(),
+  competenciaInicio: text('competencia_inicio').notNull(),
+  competenciaFim: text('competencia_fim'),
+  proporcional: integer('proporcional', { mode: 'boolean' }).notNull().default(false),
+  destino: text('destino', { enum: ['PROPRIETARIO', 'TERCEIRO', 'IMOBILIARIA'] }).notNull(),
+  beneficiarioId: integer('beneficiario_id').references(() => pessoa.id, { onDelete: 'restrict' }),
+  ativo: integer('ativo', { mode: 'boolean' }).notNull().default(true),
+  ...carimbos
+})
+
+/** Lançamentos avulsos: cobrança extra ao locatário ou débito ao proprietário. */
+export const contratoLancamento = sqliteTable('contrato_lancamento', {
+  id: integer('id').primaryKey(),
+  contratoId: integer('contrato_id')
+    .notNull()
+    .references(() => contratoLocacao.id, { onDelete: 'restrict' }),
+  competencia: text('competencia').notNull(),
+  descricao: text('descricao').notNull(),
+  valorCentavos: integer('valor_centavos').notNull(),
+  pagador: text('pagador', { enum: ['LOCATARIO', 'PROPRIETARIO'] }).notNull(),
+  destino: text('destino', { enum: ['PROPRIETARIO', 'TERCEIRO', 'IMOBILIARIA'] }).notNull(),
+  beneficiarioId: integer('beneficiario_id').references(() => pessoa.id, { onDelete: 'restrict' }),
+  situacao: text('situacao', { enum: ['PENDENTE', 'INCLUIDO', 'LANCADO', 'CANCELADO'] }).notNull(),
+  tituloId: integer('titulo_id'),
+  lancamentoId: integer('lancamento_id'),
+  motivoCancelamento: text('motivo_cancelamento'),
+  ...carimbos
+})
+
+export const reajuste = sqliteTable('reajuste', {
+  id: integer('id').primaryKey(),
+  contratoId: integer('contrato_id')
+    .notNull()
+    .references(() => contratoLocacao.id, { onDelete: 'restrict' }),
+  dataBase: text('data_base').notNull(),
+  indiceId: integer('indice_id').references(() => indiceEconomico.id, { onDelete: 'restrict' }),
+  competenciaInicial: text('competencia_inicial'),
+  competenciaFinal: text('competencia_final'),
+  acumuladoPpm: integer('acumulado_ppm'),
+  aplicadoPpm: integer('aplicado_ppm').notNull(),
+  valorAnteriorCentavos: integer('valor_anterior_centavos').notNull(),
+  valorNovoCentavos: integer('valor_novo_centavos').notNull(),
+  situacao: text('situacao', { enum: ['APLICADO', 'DISPENSADO'] }).notNull(),
+  motivo: text('motivo'),
+  criadoEm: text('criado_em').notNull(),
+  criadoPor: integer('criado_por')
+})
+
+export const aditivo = sqliteTable('aditivo', {
+  id: integer('id').primaryKey(),
+  contratoId: integer('contrato_id')
+    .notNull()
+    .references(() => contratoLocacao.id, { onDelete: 'restrict' }),
+  tipo: text('tipo').notNull(),
+  data: text('data').notNull(),
+  descricao: text('descricao').notNull(),
+  dataFimAnterior: text('data_fim_anterior'),
+  dataFimNova: text('data_fim_nova'),
+  valorAnteriorCentavos: integer('valor_anterior_centavos'),
+  valorNovoCentavos: integer('valor_novo_centavos'),
+  criadoEm: text('criado_em').notNull(),
+  criadoPor: integer('criado_por')
+})
+
+export const rescisao = sqliteTable('rescisao', {
+  id: integer('id').primaryKey(),
+  contratoId: integer('contrato_id')
+    .notNull()
+    .unique()
+    .references(() => contratoLocacao.id, { onDelete: 'restrict' }),
+  dataEntregaChaves: text('data_entrega_chaves').notNull(),
+  iniciativa: text('iniciativa').notNull(),
+  motivo: text('motivo').notNull(),
+  multaCalculadaCentavos: integer('multa_calculada_centavos').notNull(),
+  multaCobradaCentavos: integer('multa_cobrada_centavos').notNull(),
+  dispensaMotivo: text('dispensa_motivo'),
+  memoria: text('memoria').notNull(),
+  criadoEm: text('criado_em').notNull(),
+  criadoPor: integer('criado_por')
+})
+
+// ───────────── Financeiro: títulos, baixas e razão ─────────────
+
+export const titulo = sqliteTable(
+  'titulo',
+  {
+    id: integer('id').primaryKey(),
+    sentido: text('sentido', { enum: ['RECEBER', 'PAGAR'] }).notNull(),
+    origem: text('origem').notNull(),
+    contratoId: integer('contrato_id').references(() => contratoLocacao.id, { onDelete: 'restrict' }),
+    pessoaId: integer('pessoa_id')
+      .notNull()
+      .references(() => pessoa.id, { onDelete: 'restrict' }),
+    descricao: text('descricao').notNull(),
+    competencia: text('competencia'),
+    emissao: text('emissao').notNull(),
+    vencimentoOriginal: text('vencimento_original').notNull(),
+    vencimento: text('vencimento').notNull(),
+    valorCentavos: integer('valor_centavos').notNull(),
+    situacao: text('situacao', { enum: ['ABERTO', 'PARCIAL', 'LIQUIDADO', 'CANCELADO', 'RENEGOCIADO'] }).notNull(),
+    recurso: text('recurso', { enum: ['PROPRIO', 'TERCEIROS'] }).notNull(),
+    multaBp: integer('multa_bp').notNull().default(0),
+    jurosMesBp: integer('juros_mes_bp').notNull().default(0),
+    destinoEncargos: text('destino_encargos', { enum: ['PROPRIETARIO', 'IMOBILIARIA'] }).notNull().default('PROPRIETARIO'),
+    chaveIdempotencia: text('chave_idempotencia').unique(),
+    renegociacaoId: integer('renegociacao_id'),
+    repasseId: integer('repasse_id'),
+    motivoCancelamento: text('motivo_cancelamento'),
+    ...carimbos
+  },
+  (t) => [index('ix_titulo_situacao_venc').on(t.sentido, t.situacao, t.vencimento), index('ix_titulo_contrato').on(t.contratoId), index('ix_titulo_pessoa').on(t.pessoaId)]
+)
+
+export const tituloItem = sqliteTable(
+  'titulo_item',
+  {
+    id: integer('id').primaryKey(),
+    tituloId: integer('titulo_id')
+      .notNull()
+      .references(() => titulo.id, { onDelete: 'restrict' }),
+    tipo: text('tipo').notNull(),
+    descricao: text('descricao').notNull(),
+    valorCentavos: integer('valor_centavos').notNull(),
+    /** Para quem vai o valor recebido: proprietário(s), terceiro, imobiliária (receita) ou caução (passivo). */
+    destino: text('destino', { enum: ['PROPRIETARIO', 'TERCEIRO', 'IMOBILIARIA', 'CAUCAO', 'PASSIVO'] }).notNull(),
+    beneficiarioId: integer('beneficiario_id').references(() => pessoa.id, { onDelete: 'restrict' }),
+    contaGerencialId: integer('conta_gerencial_id').references(() => contaGerencial.id, { onDelete: 'restrict' }),
+    taxaBp: integer('taxa_bp').notNull().default(0),
+    taxaTipo: text('taxa_tipo', { enum: ['ADMINISTRACAO', 'INTERMEDIACAO'] }),
+    lancamentoAvulsoId: integer('lancamento_avulso_id')
+  },
+  (t) => [index('ix_titulo_item_titulo').on(t.tituloId)]
+)
+
+export const baixa = sqliteTable(
+  'baixa',
+  {
+    id: integer('id').primaryKey(),
+    tituloId: integer('titulo_id')
+      .notNull()
+      .references(() => titulo.id, { onDelete: 'restrict' }),
+    data: text('data').notNull(),
+    principalCentavos: integer('principal_centavos').notNull(),
+    multaCentavos: integer('multa_centavos').notNull().default(0),
+    jurosCentavos: integer('juros_centavos').notNull().default(0),
+    descontoCentavos: integer('desconto_centavos').notNull().default(0),
+    totalCentavos: integer('total_centavos').notNull(),
+    contaFinanceiraId: integer('conta_financeira_id').references(() => contaFinanceira.id, { onDelete: 'restrict' }),
+    forma: text('forma').notNull(),
+    observacao: text('observacao'),
+    lancamentoId: integer('lancamento_id'),
+    estornada: integer('estornada', { mode: 'boolean' }).notNull().default(false),
+    estornoLancamentoId: integer('estorno_lancamento_id'),
+    estornoMotivo: text('estorno_motivo'),
+    estornadaEm: text('estornada_em'),
+    estornadaPor: integer('estornada_por'),
+    criadoEm: text('criado_em').notNull(),
+    criadoPor: integer('criado_por')
+  },
+  (t) => [index('ix_baixa_titulo').on(t.tituloId)]
+)
+
+/** Quanto de cada item do título foi quitado por uma baixa (pago em dinheiro e/ou desconto). */
+export const baixaItem = sqliteTable(
+  'baixa_item',
+  {
+    baixaId: integer('baixa_id')
+      .notNull()
+      .references(() => baixa.id, { onDelete: 'restrict' }),
+    tituloItemId: integer('titulo_item_id')
+      .notNull()
+      .references(() => tituloItem.id, { onDelete: 'restrict' }),
+    pagoCentavos: integer('pago_centavos').notNull(),
+    descontoCentavos: integer('desconto_centavos').notNull().default(0)
+  },
+  (t) => [primaryKey({ columns: [t.baixaId, t.tituloItemId] }), index('ix_baixa_item_item').on(t.tituloItemId)]
+)
+
+export const lancamento = sqliteTable(
+  'lancamento',
+  {
+    id: integer('id').primaryKey(),
+    data: text('data').notNull(),
+    historico: text('historico').notNull(),
+    origem: text('origem').notNull(),
+    origemId: integer('origem_id'),
+    estornoDeId: integer('estorno_de_id'),
+    criadoEm: text('criado_em').notNull(),
+    criadoPor: integer('criado_por')
+  },
+  (t) => [index('ix_lancamento_origem').on(t.origem, t.origemId), index('ix_lancamento_data').on(t.data)]
+)
+
+/** Partidas dobradas. Imutáveis, exceto a marcação de repasse (repasse_id). */
+export const partida = sqliteTable(
+  'partida',
+  {
+    id: integer('id').primaryKey(),
+    lancamentoId: integer('lancamento_id')
+      .notNull()
+      .references(() => lancamento.id, { onDelete: 'restrict' }),
+    contaGerencialId: integer('conta_gerencial_id')
+      .notNull()
+      .references(() => contaGerencial.id, { onDelete: 'restrict' }),
+    pessoaId: integer('pessoa_id').references(() => pessoa.id, { onDelete: 'restrict' }),
+    contaFinanceiraId: integer('conta_financeira_id').references(() => contaFinanceira.id, { onDelete: 'restrict' }),
+    contratoId: integer('contrato_id').references(() => contratoLocacao.id, { onDelete: 'restrict' }),
+    tituloId: integer('titulo_id'),
+    debitoCentavos: integer('debito_centavos').notNull().default(0),
+    creditoCentavos: integer('credito_centavos').notNull().default(0),
+    historico: text('historico').notNull(),
+    repasseId: integer('repasse_id')
+  },
+  (t) => [
+    index('ix_partida_conta_pessoa').on(t.contaGerencialId, t.pessoaId, t.repasseId),
+    index('ix_partida_conta_financeira').on(t.contaFinanceiraId),
+    index('ix_partida_lancamento').on(t.lancamentoId)
+  ]
+)
+
+export const repasse = sqliteTable('repasse', {
+  id: integer('id').primaryKey(),
+  tipo: text('tipo', { enum: ['PROPRIETARIO', 'TERCEIRO', 'CAUCAO'] }).notNull(),
+  pessoaId: integer('pessoa_id')
+    .notNull()
+    .references(() => pessoa.id, { onDelete: 'restrict' }),
+  contaGerencialId: integer('conta_gerencial_id')
+    .notNull()
+    .references(() => contaGerencial.id, { onDelete: 'restrict' }),
+  data: text('data').notNull(),
+  valorCentavos: integer('valor_centavos').notNull(),
+  tituloId: integer('titulo_id'),
+  situacao: text('situacao', { enum: ['ABERTO', 'PAGO', 'CANCELADO'] }).notNull(),
+  motivoCancelamento: text('motivo_cancelamento'),
+  criadoEm: text('criado_em').notNull(),
+  criadoPor: integer('criado_por')
+})
+
+export const renegociacao = sqliteTable('renegociacao', {
+  id: integer('id').primaryKey(),
+  pessoaId: integer('pessoa_id')
+    .notNull()
+    .references(() => pessoa.id, { onDelete: 'restrict' }),
+  contratoId: integer('contrato_id').references(() => contratoLocacao.id, { onDelete: 'restrict' }),
+  data: text('data').notNull(),
+  motivo: text('motivo').notNull(),
+  saldoOriginalCentavos: integer('saldo_original_centavos').notNull(),
+  encargosCentavos: integer('encargos_centavos').notNull(),
+  descontoCentavos: integer('desconto_centavos').notNull(),
+  totalCentavos: integer('total_centavos').notNull(),
+  parcelas: integer('parcelas').notNull(),
+  titulosOrigem: text('titulos_origem').notNull(),
+  criadoEm: text('criado_em').notNull(),
+  criadoPor: integer('criado_por')
+})
+
+/** Valor do aluguel vigente a partir de cada competência (contrato, reajustes e aditivos). */
+export const aluguelVigencia = sqliteTable(
+  'aluguel_vigencia',
+  {
+    contratoId: integer('contrato_id')
+      .notNull()
+      .references(() => contratoLocacao.id, { onDelete: 'restrict' }),
+    competencia: text('competencia').notNull(),
+    valorCentavos: integer('valor_centavos').notNull(),
+    origem: text('origem', { enum: ['CONTRATO', 'REAJUSTE', 'ADITIVO'] }).notNull(),
+    origemId: integer('origem_id'),
+    criadoEm: text('criado_em').notNull(),
+    criadoPor: integer('criado_por')
+  },
+  (t) => [primaryKey({ columns: [t.contratoId, t.competencia] })]
+)

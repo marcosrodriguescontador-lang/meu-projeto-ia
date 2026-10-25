@@ -16,6 +16,15 @@ import { ListaPessoas } from '@/features/pessoas/ListaPessoas'
 import { Usuarios } from '@/features/usuarios/Usuarios'
 import { FormImovel } from '@/features/imoveis/FormImovel'
 import { ListaImoveis } from '@/features/imoveis/ListaImoveis'
+import { FormContrato } from '@/features/locacoes/FormContrato'
+import { ListaContratos } from '@/features/locacoes/ListaContratos'
+import { Reajustes } from '@/features/locacoes/Reajustes'
+import { Cobrancas } from '@/features/financeiro/Cobrancas'
+import { Contas } from '@/features/financeiro/Contas'
+import { Inadimplencia } from '@/features/financeiro/Inadimplencia'
+import { Indices } from '@/features/financeiro/Indices'
+import { Repasses } from '@/features/financeiro/Repasses'
+import { Titulos } from '@/features/financeiro/Titulos'
 import { Layout } from './Layout'
 import { useSessao } from './sessao'
 
@@ -58,6 +67,17 @@ export function App() {
             <Route path="imoveis" element={<Protegida permissao="imoveis.ver"><ListaImoveis /></Protegida>} />
             <Route path="imoveis/novo" element={<Protegida permissao="imoveis.criar"><FormImovel /></Protegida>} />
             <Route path="imoveis/:id" element={<Protegida permissao="imoveis.ver"><FormImovel key="editar" /></Protegida>} />
+            <Route path="locacoes" element={<Protegida permissao="locacoes.ver"><ListaContratos /></Protegida>} />
+            <Route path="locacoes/novo" element={<Protegida permissao="locacoes.gerenciar"><FormContrato /></Protegida>} />
+            <Route path="locacoes/:id" element={<Protegida permissao="locacoes.ver"><FormContrato key="editar" /></Protegida>} />
+            <Route path="reajustes" element={<Protegida permissao="locacoes.ver"><Reajustes /></Protegida>} />
+            <Route path="financeiro/receber" element={<Protegida permissao="financeiro.ver"><Titulos key="receber" sentido="RECEBER" /></Protegida>} />
+            <Route path="financeiro/pagar" element={<Protegida permissao="financeiro.ver"><Titulos key="pagar" sentido="PAGAR" /></Protegida>} />
+            <Route path="financeiro/cobrancas" element={<Protegida permissao="financeiro.ver"><Cobrancas /></Protegida>} />
+            <Route path="financeiro/inadimplencia" element={<Protegida permissao="financeiro.ver"><Inadimplencia /></Protegida>} />
+            <Route path="financeiro/repasses" element={<Protegida permissao="financeiro.ver"><Repasses /></Protegida>} />
+            <Route path="financeiro/contas" element={<Protegida permissao="financeiro.ver"><Contas /></Protegida>} />
+            <Route path="financeiro/indices" element={<Indices />} />
             <Route path="usuarios" element={<Protegida permissao="usuarios.ver"><Usuarios /></Protegida>} />
             <Route path="auditoria" element={<Protegida permissao="auditoria.ver"><Auditoria /></Protegida>} />
             <Route path="backup" element={<Protegida permissao="backup.executar"><Backup /></Protegida>} />

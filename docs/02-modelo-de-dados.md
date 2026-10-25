@@ -100,6 +100,8 @@ A **cobrança mensal** e o **repasse** não são tabelas isoladas: são `titulo`
 
 ## 6. Financeiro
 
+> Implementação (Fase 3): títulos sem tabela de parcelas (ADR-30); itens com destino e taxa congelada (ADR-31); `aluguel_vigencia`, `contrato_encargo` e `contrato_lancamento` (avulsos) no lugar de `contrato_item`; repasses por marcação de partidas (ADR-34).
+
 ### 6.1 Títulos (o "a receber / a pagar")
 
 | Tabela | Campos principais |

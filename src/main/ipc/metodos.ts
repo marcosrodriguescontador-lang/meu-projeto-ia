@@ -23,6 +23,7 @@ import { adicionarFotos, definirCapa, definirLegenda, fotosParaFicha, listarFoto
 import { gerarFichaHtml } from '../modules/imoveis/ficha'
 import { lerLogoDataUrl, gerarPdf } from './electron-util'
 import type { Metodos } from './roteador'
+import { criarMetodosFinanceiros } from './metodos-financeiro'
 
 export interface DependenciasMetodos {
   versaoApp: string
@@ -280,6 +281,8 @@ export function criarMetodos(dep: DependenciasMetodos): Metodos {
       }
     },
 
-    'painel.indicadores': { executar: ({ infra, ator }) => indicadoresPainel(infra, ator) }
+    'painel.indicadores': { executar: ({ infra, ator }) => indicadoresPainel(infra, ator) },
+
+    ...criarMetodosFinanceiros(dep.dirMarca)
   }
 }

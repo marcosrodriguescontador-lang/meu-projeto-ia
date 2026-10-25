@@ -270,6 +270,10 @@ export function alterarSituacao(infra: Infra, ator: Ator, entrada: AlterarSituac
     if (!SITUACOES_POR_MODALIDADE[o.modalidade].includes(situacao))
       throw erro.validacao(`Situação "${SITUACOES_OFERTA[situacao]}" não se aplica à ${o.modalidade === 'VENDA' ? 'venda' : 'locação'}.`)
     if (o.situacao === situacao) throw erro.regra('A oferta já está nesta situação.')
+    if (o.modalidade === 'LOCACAO') {
+      const contrato = infra.bruto.prepare("SELECT numero FROM contrato_locacao WHERE imovel_id = ? AND situacao = 'ATIVO'").get(o.imovelId) as { numero: number } | undefined
+      if (contrato) throw erro.regra(`A situação da locação é definida pelo contrato ativo nº ${contrato.numero}. Para liberar o imóvel, registre a rescisão.`)
+    }
     registrarSituacao(infra, ator, o.id, o.situacao, situacao, motivo)
     let complemento = ''
     // Imóvel vendido deixa de ser ofertado para locação (salvo se já estiver alugado: o contrato segue).

@@ -7,7 +7,7 @@ import type { AnexoDto } from '@shared/dto'
 import { erro } from '@shared/erros'
 import type { Permissao } from '@shared/permissoes'
 import { cifrarArquivo, decifrarArquivo, sha256Arquivo } from '../../infra/crypto'
-import { anexo, imovel, imovelFoto, pessoa } from '../../infra/db/schema'
+import { anexo, contratoLocacao, imovel, imovelFoto, pessoa } from '../../infra/db/schema'
 import { agoraIso, exigir, type Ator, type Infra } from '../../nucleo/contexto'
 import { auditar } from '../seguranca/auditoria'
 
@@ -27,11 +27,12 @@ export const TIPOS_PERMITIDOS: Record<string, string> = {
 
 export const CATEGORIAS_ANEXO = ['Documento de identificação', 'Comprovante de endereço', 'Comprovante de renda', 'Contrato social', 'Certidão', 'Procuração', 'Outros'] as const
 
-export type Entidade = 'pessoa' | 'imovel'
+export type Entidade = 'pessoa' | 'imovel' | 'contrato'
 
 const PERMISSOES: Record<Entidade, { ver: Permissao; gerenciar: Permissao }> = {
   pessoa: { ver: 'pessoas.documentos.ver', gerenciar: 'pessoas.documentos.gerenciar' },
-  imovel: { ver: 'imoveis.documentos.ver', gerenciar: 'imoveis.documentos.gerenciar' }
+  imovel: { ver: 'imoveis.documentos.ver', gerenciar: 'imoveis.documentos.gerenciar' },
+  contrato: { ver: 'locacoes.ver', gerenciar: 'locacoes.gerenciar' }
 }
 
 function caminhoArmazenado(infra: Infra, uuid: string): string {
@@ -43,6 +44,7 @@ function conferirEntidade(infra: Infra, entidade: Entidade, id: number): void {
     throw erro.naoEncontrado('Pessoa')
   if (entidade === 'imovel' && !infra.db.select({ id: imovel.id }).from(imovel).where(and(eq(imovel.id, id), isNull(imovel.excluidoEm))).get())
     throw erro.naoEncontrado('Imóvel')
+  if (entidade === 'contrato' && !infra.db.select({ id: contratoLocacao.id }).from(contratoLocacao).where(eq(contratoLocacao.id, id)).get()) throw erro.naoEncontrado('Contrato')
 }
 
 /** Lista documentos (fotos de imóveis têm galeria própria e não aparecem aqui). */

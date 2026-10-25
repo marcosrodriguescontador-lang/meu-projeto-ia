@@ -2,18 +2,18 @@ import { z } from 'zod'
 import { normalizarDocumento, UFS, validarCep, validarCnpj, validarCpf } from './documentos'
 import { paraCentavos, paraCentesimos, paraPontosBase } from './dinheiro'
 
-const texto = (max: number) => z.string().trim().max(max, `Máximo de ${max} caracteres`)
-const obrigatorio = (max: number) => texto(max).min(1, 'Campo obrigatório')
+export const texto = (max: number) => z.string().trim().max(max, `Máximo de ${max} caracteres`)
+export const obrigatorio = (max: number) => texto(max).min(1, 'Campo obrigatório')
 /** Campo opcional vindo de formulário: string vazia vira null. */
-const opcional = (max: number) =>
+export const opcional = (max: number) =>
   texto(max)
     .nullish()
     .transform((v) => (v ? v : null))
-const dataIso = z
+export const dataIso = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida')
   .refine((v) => !Number.isNaN(Date.parse(v)), 'Data inválida')
-const id = z.number().int().positive()
+export const id = z.number().int().positive()
 
 // ───────────── Segurança ─────────────
 
@@ -118,7 +118,7 @@ export const TIPOS_CONTA = { CORRENTE: 'Conta corrente', POUPANCA: 'Poupança', 
 export const TIPOS_PIX = { CPF_CNPJ: 'CPF/CNPJ', EMAIL: 'E-mail', TELEFONE: 'Telefone', ALEATORIA: 'Chave aleatória' } as const
 export const RELACOES = { CONJUGE: 'Cônjuge/companheiro(a)', REPRESENTANTE: 'Representante legal', SOCIO: 'Sócio', PROCURADOR: 'Procurador' } as const
 
-const chaves = <T extends Record<string, string>>(o: T) => Object.keys(o) as [keyof T & string, ...(keyof T & string)[]]
+export const chaves = <T extends Record<string, string>>(o: T) => Object.keys(o) as [keyof T & string, ...(keyof T & string)[]]
 
 export const enderecoSchema = z.object({
   tipo: z.enum(chaves(TIPOS_ENDERECO)),
@@ -288,7 +288,7 @@ export const SITUACOES_POR_MODALIDADE: Record<Modalidade, SituacaoOferta[]> = {
 }
 
 /** Valor monetário vindo de formulário ("1.234,56") ou número; saída em centavos. */
-const moeda = (obrigatoria: boolean) =>
+export const moeda = (obrigatoria: boolean) =>
   z
     .union([z.string(), z.number(), z.null(), z.undefined()])
     .transform((v, ctx) => {
@@ -304,7 +304,7 @@ const moeda = (obrigatoria: boolean) =>
       return c
     })
 
-const percentual = z.union([z.string(), z.number(), z.null(), z.undefined()]).transform((v, ctx) => {
+export const percentual = z.union([z.string(), z.number(), z.null(), z.undefined()]).transform((v, ctx) => {
   if (v == null || v === '') return 0
   const bp = paraPontosBase(v)
   if (bp == null || bp > 10_000) {

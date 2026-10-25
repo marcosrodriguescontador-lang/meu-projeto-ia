@@ -1,10 +1,12 @@
 // Contrato RPC entre interface e processo principal: método → [entrada, saída].
 import type * as D from './dto'
 import type * as S from './schemas'
+import type * as F from './dto-financeiro'
+import type * as L from './schemas-locacao'
 
 type P<T> = T
 
-export type EntidadeAnexo = 'pessoa' | 'imovel'
+export type EntidadeAnexo = 'pessoa' | 'imovel' | 'contrato'
 
 export interface ContratoApi {
   'sistema.estado': [void, D.EstadoSistema]
@@ -71,6 +73,58 @@ export interface ContratoApi {
   'anexos.abrir': [{ id: number }, void]
   'anexos.salvarComo': [{ id: number }, boolean]
   'anexos.remover': [{ id: number; motivo: string }, void]
+
+  'financeiro.contas.listar': [{ incluirInativas?: boolean }, F.ContaFinanceiraDto[]]
+  'financeiro.contas.salvar': [{ id: number | null; dados: L.ContaFinanceiraInput }, { id: number }]
+  'financeiro.verificarRazao': [void, { lancamentos: number; desbalanceados: number[]; somaGeral: number }]
+  'indices.listar': [void, F.IndiceDto[]]
+  'indices.salvarValor': [L.IndiceValorInput, void]
+  'feriados.listar': [void, F.FeriadoDto[]]
+  'feriados.salvar': [{ data: string; descricao: string; abrangencia: string }, void]
+  'feriados.remover': [{ id: number }, void]
+
+  'contratos.listar': [{ situacao?: string; busca?: string; vencendoDias?: number; imovelId?: number; pessoaId?: number }, F.ContratoResumo[]]
+  'contratos.obter': [{ id: number }, F.ContratoDetalhe]
+  'contratos.salvar': [{ id: number | null; dados: L.ContratoInput }, { id: number }]
+  'contratos.ativar': [{ id: number }, void]
+  'contratos.excluirRascunho': [{ id: number }, void]
+  'contratos.historico': [{ id: number }, D.RegistroAuditoria[]]
+  'contratos.lancamentos': [{ id: number }, F.LancamentoAvulsoDto[]]
+  'contratos.criarLancamento': [L.LancamentoAvulsoInput, { id: number }]
+  'contratos.cancelarLancamento': [{ id: number; motivo: string }, void]
+  'contratos.aditivos': [{ id: number }, { id: number; tipo: string; data: string; descricao: string; dataFimNova: string | null; valorNovoCentavos: number | null }[]]
+  'contratos.registrarAditivo': [L.AditivoInput, void]
+  'contratos.reajustes': [{ id: number }, { id: number; dataBase: string; aplicadoPpm: number; valorAnteriorCentavos: number; valorNovoCentavos: number; situacao: string; motivo: string | null; criadoEm: string }[]]
+  'contratos.simularRescisao': [{ id: number; data: string }, F.MemoriaRescisao]
+  'contratos.rescindir': [L.RescisaoInput, { tituloRescisaoId: number | null; repasseCaucaoId: number | null }]
+  'reajustes.pendentes': [{ ate?: string }, F.ReajustePendente[]]
+  'reajustes.aplicar': [{ contratoId: number }, F.ReajustePendente]
+  'reajustes.dispensar': [{ contratoId: number; motivo: string }, void]
+  'cobrancas.previa': [{ competencia: string }, F.PreviaCobranca[]]
+  'cobrancas.gerar': [{ competencia: string; contratoIds?: number[] }, { geradas: number; jaGeradas: number; bloqueadas: { contrato: number; motivo: string }[]; valorCentavos: number }]
+
+  'titulos.listar': [
+    { sentido?: 'RECEBER' | 'PAGAR'; situacao?: string; pessoaId?: number; contratoId?: number; origem?: string; vencimentoDe?: string; vencimentoAte?: string; competencia?: string; busca?: string; pagina?: number },
+    { itens: F.TituloResumo[]; total: number; somaSaldo: number }
+  ]
+  'titulos.obter': [{ id: number }, F.TituloDetalhe]
+  'titulos.previaRecebimento': [{ id: number; data: string }, F.PreviaRecebimento]
+  'titulos.receber': [L.BaixaReceberInput, { baixaId: number; total: number; multa: number; juros: number; principal: number; desconto: number }]
+  'titulos.pagar': [L.BaixaPagarInput, { baixaId: number }]
+  'titulos.estornar': [{ baixaId: number; motivo: string }, void]
+  'titulos.cancelar': [{ id: number; motivo: string }, void]
+  'titulos.inadimplencia': [void, F.InadimplenciaLinha[]]
+  'titulos.renegociar': [L.RenegociacaoInput, { renegociacaoId: number; titulos: number[] }]
+  'titulos.recibo': [{ baixaId: number }, boolean]
+
+  'repasses.saldos': [{ tipo?: 'PROPRIETARIO' | 'TERCEIRO' | 'CAUCAO' }, F.SaldoRepasse[]]
+  'repasses.extrato': [{ tipo: 'PROPRIETARIO' | 'TERCEIRO' | 'CAUCAO'; pessoaId: number }, F.ExtratoLinha[]]
+  'repasses.listar': [{ situacao?: string; pessoaId?: number }, F.RepasseDto[]]
+  'repasses.gerar': [{ tipo: 'PROPRIETARIO' | 'TERCEIRO' | 'CAUCAO'; pessoaId: number; vencimento: string }, F.RepasseDto]
+  'repasses.gerarLote': [{ vencimento: string }, { gerados: F.RepasseDto[]; ignorados: { pessoa: string; motivo: string }[] }]
+  'repasses.cancelar': [{ id: number; motivo: string }, void]
+  'repasses.demonstrativo': [{ id: number }, { repasse: F.RepasseDto; linhas: F.ExtratoLinha[] }]
+  'repasses.demonstrativoPdf': [{ id: number }, boolean]
 
   'auditoria.listar': [
     { entidade?: string; usuario?: string; de?: string; ate?: string; busca?: string; pagina?: number; porPagina?: number },
