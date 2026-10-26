@@ -1,0 +1,32 @@
+# Empacotamento Windows (NSIS). Gere em Windows ou pelo workflow do GitHub Actions (windows-latest).
+appId: br.com.statusimoveis.erp
+productName: STATUS ERP IMOBILIÁRIO
+copyright: Status Negócios Imobiliários
+publish: null
+directories:
+  output: release
+  buildResources: build
+files:
+  - out/**
+  - package.json
+  - assets/brand/**
+asarUnpack:
+  - '**/*.node'
+npmRebuild: true
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  # icon: build/icon.ico  — gerar a partir do logotipo oficial quando fornecido
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: STATUS ERP
+  installerLanguages: [pt_BR]
+  language: '1046'
+  # Os dados do cliente (banco, anexos, backups) NUNCA são apagados na desinstalação.
+  deleteAppDataOnUninstall: false
+  artifactName: STATUS-ERP-Setup-${version}.${ext}
