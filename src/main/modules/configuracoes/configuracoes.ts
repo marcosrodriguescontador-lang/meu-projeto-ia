@@ -2,6 +2,7 @@
 import { eq } from 'drizzle-orm'
 import type { EmpresaConfig } from '@shared/dto'
 import type { BackupConfig, SegurancaConfig } from '@shared/schemas'
+import type { RateioPadrao } from '@shared/schemas-crm'
 import { configuracao } from '../../infra/db/schema'
 import { agoraIso, type Ator, type Infra } from '../../nucleo/contexto'
 import { auditar } from '../seguranca/auditoria'
@@ -15,6 +16,7 @@ interface Mapa {
   empresa: EmpresaConfig
   seguranca: SegurancaConfig
   backup: BackupConfig
+  rateio_comissao: RateioPadrao
 }
 
 export function lerConfig<K extends keyof Mapa>(infra: Infra, chave: K): Mapa[K] | null {

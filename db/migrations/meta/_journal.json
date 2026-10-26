@@ -64,6 +64,20 @@
       "when": 1792977524975,
       "tag": "0008_plano_contas_ampliado",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1792981238046,
+      "tag": "0009_vendas_crm",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1792981243655,
+      "tag": "0010_crm_regras",
+      "breakpoints": true
     }
   ]
 }

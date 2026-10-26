@@ -10,6 +10,7 @@ import { exigir, pode, type Ator, type Infra } from '../../nucleo/contexto'
 import { locadoresDoContrato } from './baixas'
 import { listarContasFinanceiras, saldoContaFinanceira } from './cadastros'
 import { CONTAS, idConta, saldoConta } from './razao'
+import { comissoesPorBeneficiario } from './comissoes'
 import { posicaoTerceiros } from './tesouraria'
 import { inadimplencia } from './titulos'
 import { saldosARepassar } from './repasses'
@@ -472,7 +473,31 @@ function relDimob(infra: Infra, p: ParametrosRelatorio): RelatorioDados {
   }
 }
 
+/** Comissões por beneficiário: previsto (rateio), liberado após recebimento, pago e saldo. */
+function relComissoes(infra: Infra, ator: Ator): RelatorioDados {
+  const l = comissoesPorBeneficiario(infra, ator)
+  const soma = (k: 'previstoCentavos' | 'liberadoCentavos' | 'pagoCentavos') => l.reduce((s, x) => s + x[k], 0)
+  return {
+    codigo: 'comissoes',
+    titulo: RELATORIOS.comissoes,
+    subtitulo: `Posição em ${formatarData(hojeIso(infra.agora()))} · comissões ativas`,
+    colunas: [
+      { chave: 'beneficiario', rotulo: 'Corretor / parceiro', tipo: 'texto', largura: 32 },
+      { chave: 'comissoes', rotulo: 'Comissões', tipo: 'numero' },
+      { chave: 'previsto', rotulo: 'Previsto (rateio)', tipo: 'moeda' },
+      { chave: 'liberado', rotulo: 'Liberado', tipo: 'moeda' },
+      { chave: 'pago', rotulo: 'Pago', tipo: 'moeda' },
+      { chave: 'aPagar', rotulo: 'A pagar', tipo: 'moeda' },
+      { chave: 'aLiberar', rotulo: 'Aguardando recebimento', tipo: 'moeda' }
+    ],
+    linhas: l.map((x) => ({ beneficiario: x.nome, comissoes: x.comissoes, previsto: x.previstoCentavos, liberado: x.liberadoCentavos, pago: x.pagoCentavos, aPagar: x.liberadoCentavos - x.pagoCentavos, aLiberar: x.previstoCentavos - x.liberadoCentavos })),
+    totais: { beneficiario: `${l.length} beneficiário(s)`, previsto: soma('previstoCentavos'), liberado: soma('liberadoCentavos'), pago: soma('pagoCentavos'), aPagar: soma('liberadoCentavos') - soma('pagoCentavos'), aLiberar: soma('previstoCentavos') - soma('liberadoCentavos') },
+    observacoes: ['A parte de cada corretor é liberada (vira conta a pagar) somente na proporção do que a imobiliária já recebeu da comissão.']
+  }
+}
+
 export function gerarRelatorio(infra: Infra, ator: Ator, codigo: CodigoRelatorio, p: ParametrosRelatorio = {}): RelatorioDados {
+  if (codigo === 'comissoes') return relComissoes(infra, ator)
   exigir(ator, 'financeiro.ver')
   if (codigo === 'dimob' && !pode(ator, 'pessoas.ver')) throw erro.semPermissao()
   switch (codigo) {

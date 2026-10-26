@@ -36,3 +36,17 @@ export function BuscaPessoa({ aoSelecionar, ignorar = [] }: { aoSelecionar: (p: 
     </div>
   )
 }
+
+/** Pessoa escolhida (com opção de trocar) ou campo de busca. */
+export function SeletorPessoa({ valor, aoMudar }: { valor: { id: number; nome: string } | null; aoMudar: (p: { id: number; nome: string } | null) => void }) {
+  return valor ? (
+    <div className="flex h-9 items-center justify-between rounded-md border border-borda px-3 text-sm">
+      {valor.nome}
+      <button type="button" className="text-xs underline" onClick={() => aoMudar(null)}>
+        trocar
+      </button>
+    </div>
+  ) : (
+    <BuscaPessoa aoSelecionar={(p) => aoMudar({ id: p.id, nome: p.nome })} />
+  )
+}

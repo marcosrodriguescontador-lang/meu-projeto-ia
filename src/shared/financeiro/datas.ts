@@ -16,6 +16,12 @@ export function hojeIso(agora = new Date()): string {
   return local.toISOString().slice(0, 10)
 }
 
+/** Data e hora local no formato AAAA-MM-DDTHH:MM. */
+export function agoraLocal(agora = new Date()): string {
+  const local = new Date(agora.getTime() - agora.getTimezoneOffset() * 60_000)
+  return local.toISOString().slice(0, 16)
+}
+
 export function adicionarDias(iso: string, dias: number): string {
   return paraIso(new Date(paraData(iso).getTime() + dias * DIA))
 }

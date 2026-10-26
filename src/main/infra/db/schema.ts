@@ -848,3 +848,278 @@ export const conciliacao = sqliteTable('conciliacao', {
   conciliadoEm: text('conciliado_em').notNull(),
   conciliadoPor: integer('conciliado_por')
 })
+
+// ───────────── CRM e vendas (Fase 5) ─────────────
+
+export const ETAPAS_NEGOCIO = ['CAPTACAO', 'ATENDIMENTO', 'VISITA', 'PROPOSTA', 'NEGOCIACAO', 'CONTRATO', 'CONCLUIDO', 'PERDIDO'] as const
+
+export const origemLead = sqliteTable('origem_lead', {
+  id: integer('id').primaryKey(),
+  nome: text('nome').notNull().unique(),
+  ativa: integer('ativa', { mode: 'boolean' }).notNull().default(true)
+})
+
+export const lead = sqliteTable(
+  'lead',
+  {
+    id: integer('id').primaryKey(),
+    nome: text('nome').notNull(),
+    telefone: text('telefone'),
+    email: text('email'),
+    pessoaId: integer('pessoa_id').references(() => pessoa.id, { onDelete: 'restrict' }),
+    origemId: integer('origem_id')
+      .notNull()
+      .references(() => origemLead.id, { onDelete: 'restrict' }),
+    /** Corretor responsável (pessoa com papel de corretor). */
+    corretorId: integer('corretor_id').references(() => pessoa.id, { onDelete: 'restrict' }),
+    interesse: text('interesse', { enum: ['COMPRA', 'LOCACAO', 'AMBOS'] }).notNull(),
+    tipoImovel: text('tipo_imovel'),
+    bairros: text('bairros'),
+    valorMinCentavos: integer('valor_min_centavos'),
+    valorMaxCentavos: integer('valor_max_centavos'),
+    dormitoriosMin: integer('dormitorios_min'),
+    observacoes: text('observacoes'),
+    consentimentoContato: integer('consentimento_contato', { mode: 'boolean' }).notNull().default(false),
+    /** Identificador no canal de origem (portal, site, WhatsApp) para futuras integrações sem duplicar. */
+    idExterno: text('id_externo'),
+    situacao: text('situacao', { enum: ['ATIVO', 'CONVERTIDO', 'DESCARTADO'] }).notNull().default('ATIVO'),
+    motivoDescarte: text('motivo_descarte'),
+    ...carimbos
+  },
+  (t) => [index('ix_lead_situacao').on(t.situacao, t.corretorId), uniqueIndex('ux_lead_externo').on(t.origemId, t.idExterno)]
+)
+
+export const leadImovel = sqliteTable(
+  'lead_imovel',
+  {
+    leadId: integer('lead_id')
+      .notNull()
+      .references(() => lead.id, { onDelete: 'cascade' }),
+    imovelId: integer('imovel_id')
+      .notNull()
+      .references(() => imovel.id, { onDelete: 'restrict' }),
+    criadoEm: text('criado_em').notNull().default(agora)
+  },
+  (t) => [primaryKey({ columns: [t.leadId, t.imovelId] })]
+)
+
+export const negocio = sqliteTable(
+  'negocio',
+  {
+    id: integer('id').primaryKey(),
+    tipo: text('tipo', { enum: ['VENDA', 'LOCACAO'] }).notNull(),
+    titulo: text('titulo').notNull(),
+    leadId: integer('lead_id').references(() => lead.id, { onDelete: 'restrict' }),
+    /** Cliente (comprador ou futuro locatário) no cadastro único. Exigido a partir da proposta. */
+    clienteId: integer('cliente_id').references(() => pessoa.id, { onDelete: 'restrict' }),
+    imovelId: integer('imovel_id').references(() => imovel.id, { onDelete: 'restrict' }),
+    corretorId: integer('corretor_id').references(() => pessoa.id, { onDelete: 'restrict' }),
+    etapa: text('etapa', { enum: ETAPAS_NEGOCIO }).notNull(),
+    etapaDesde: text('etapa_desde').notNull(),
+    valorEstimadoCentavos: integer('valor_estimado_centavos'),
+    motivoPerda: text('motivo_perda'),
+    contratoId: integer('contrato_id').references(() => contratoLocacao.id, { onDelete: 'restrict' }),
+    encerradoEm: text('encerrado_em'),
+    ...carimbos
+  },
+  (t) => [index('ix_negocio_funil').on(t.tipo, t.etapa), index('ix_negocio_corretor').on(t.corretorId), index('ix_negocio_lead').on(t.leadId)]
+)
+
+/** Histórico de etapas (append-only): base dos indicadores de conversão. */
+export const negocioEtapaHist = sqliteTable(
+  'negocio_etapa_hist',
+  {
+    id: integer('id').primaryKey(),
+    negocioId: integer('negocio_id')
+      .notNull()
+      .references(() => negocio.id, { onDelete: 'restrict' }),
+    de: text('de'),
+    para: text('para').notNull(),
+    observacao: text('observacao'),
+    usuarioId: integer('usuario_id'),
+    ts: text('ts').notNull()
+  },
+  (t) => [index('ix_negocio_hist').on(t.negocioId)]
+)
+
+export const atividade = sqliteTable(
+  'atividade',
+  {
+    id: integer('id').primaryKey(),
+    negocioId: integer('negocio_id').references(() => negocio.id, { onDelete: 'restrict' }),
+    leadId: integer('lead_id').references(() => lead.id, { onDelete: 'restrict' }),
+    responsavelId: integer('responsavel_id')
+      .notNull()
+      .references(() => usuario.id, { onDelete: 'restrict' }),
+    tipo: text('tipo', { enum: ['LIGACAO', 'WHATSAPP', 'EMAIL', 'REUNIAO', 'TAREFA', 'OUTRO'] }).notNull(),
+    titulo: text('titulo').notNull(),
+    descricao: text('descricao'),
+    /** Data e hora local (AAAA-MM-DDTHH:MM). */
+    agendadaPara: text('agendada_para').notNull(),
+    concluidaEm: text('concluida_em'),
+    resultado: text('resultado'),
+    canceladaEm: text('cancelada_em'),
+    ...carimbos
+  },
+  (t) => [index('ix_atividade_agenda').on(t.responsavelId, t.agendadaPara), index('ix_atividade_negocio').on(t.negocioId)]
+)
+
+export const visita = sqliteTable(
+  'visita',
+  {
+    id: integer('id').primaryKey(),
+    imovelId: integer('imovel_id')
+      .notNull()
+      .references(() => imovel.id, { onDelete: 'restrict' }),
+    negocioId: integer('negocio_id').references(() => negocio.id, { onDelete: 'restrict' }),
+    leadId: integer('lead_id').references(() => lead.id, { onDelete: 'restrict' }),
+    corretorId: integer('corretor_id').references(() => pessoa.id, { onDelete: 'restrict' }),
+    dataHora: text('data_hora').notNull(),
+    situacao: text('situacao', { enum: ['AGENDADA', 'REALIZADA', 'CANCELADA', 'NAO_COMPARECEU'] }).notNull(),
+    feedback: text('feedback'),
+    /** Interesse demonstrado após a visita (1 a 5). */
+    avaliacao: integer('avaliacao'),
+    ...carimbos
+  },
+  (t) => [index('ix_visita_data').on(t.dataHora), index('ix_visita_imovel').on(t.imovelId)]
+)
+
+/** Propostas versionadas: valores imutáveis; a contraproposta é uma nova versão ligada à anterior. */
+export const proposta = sqliteTable(
+  'proposta',
+  {
+    id: integer('id').primaryKey(),
+    negocioId: integer('negocio_id')
+      .notNull()
+      .references(() => negocio.id, { onDelete: 'restrict' }),
+    versao: integer('versao').notNull(),
+    anteriorId: integer('anterior_id'),
+    autor: text('autor', { enum: ['CLIENTE', 'PROPRIETARIO'] }).notNull(),
+    valorCentavos: integer('valor_centavos').notNull(),
+    sinalCentavos: integer('sinal_centavos').notNull().default(0),
+    /** JSON: [{ descricao, valorCentavos, vencimento }] */
+    parcelas: text('parcelas').notNull().default('[]'),
+    financiamentoBanco: text('financiamento_banco'),
+    financiamentoCentavos: integer('financiamento_centavos').notNull().default(0),
+    condicoes: text('condicoes'),
+    validade: text('validade'),
+    situacao: text('situacao', { enum: ['EM_ANALISE', 'ACEITA', 'RECUSADA', 'CONTRAPROPOSTA', 'EXPIRADA', 'CANCELADA'] }).notNull(),
+    respostaEm: text('resposta_em'),
+    motivo: text('motivo'),
+    criadoEm: text('criado_em').notNull(),
+    criadoPor: integer('criado_por')
+  },
+  (t) => [uniqueIndex('ux_proposta_versao').on(t.negocioId, t.versao)]
+)
+
+export const venda = sqliteTable('venda', {
+  id: integer('id').primaryKey(),
+  negocioId: integer('negocio_id')
+    .notNull()
+    .unique()
+    .references(() => negocio.id, { onDelete: 'restrict' }),
+  imovelId: integer('imovel_id')
+    .notNull()
+    .references(() => imovel.id, { onDelete: 'restrict' }),
+  propostaId: integer('proposta_id').references(() => proposta.id, { onDelete: 'restrict' }),
+  dataContrato: text('data_contrato').notNull(),
+  valorCentavos: integer('valor_centavos').notNull(),
+  financiamentoBanco: text('financiamento_banco'),
+  financiamentoCentavos: integer('financiamento_centavos').notNull().default(0),
+  situacao: text('situacao', { enum: ['CONTRATADA', 'AGUARDANDO_FINANCIAMENTO', 'ESCRITURADA', 'CONCLUIDA', 'DISTRATADA'] }).notNull(),
+  dataEscritura: text('data_escritura'),
+  distratoMotivo: text('distrato_motivo'),
+  distratoEm: text('distrato_em'),
+  observacoes: text('observacoes'),
+  ...carimbos
+})
+
+export const vendaParte = sqliteTable(
+  'venda_parte',
+  {
+    vendaId: integer('venda_id')
+      .notNull()
+      .references(() => venda.id, { onDelete: 'restrict' }),
+    pessoaId: integer('pessoa_id')
+      .notNull()
+      .references(() => pessoa.id, { onDelete: 'restrict' }),
+    papel: text('papel', { enum: ['COMPRADOR', 'VENDEDOR'] }).notNull(),
+    percentualBp: integer('percentual_bp').notNull()
+  },
+  (t) => [primaryKey({ columns: [t.vendaId, t.pessoaId, t.papel] })]
+)
+
+/** Sinal, parcelas e financiamento. Só geram título quando o valor transita pela imobiliária (recurso de terceiros). */
+export const vendaParcela = sqliteTable(
+  'venda_parcela',
+  {
+    id: integer('id').primaryKey(),
+    vendaId: integer('venda_id')
+      .notNull()
+      .references(() => venda.id, { onDelete: 'restrict' }),
+    tipo: text('tipo', { enum: ['SINAL', 'PARCELA', 'FINANCIAMENTO', 'ESCRITURA'] }).notNull(),
+    descricao: text('descricao').notNull(),
+    valorCentavos: integer('valor_centavos').notNull(),
+    vencimento: text('vencimento').notNull(),
+    viaImobiliaria: integer('via_imobiliaria', { mode: 'boolean' }).notNull().default(false),
+    tituloId: integer('titulo_id').references(() => titulo.id, { onDelete: 'restrict' }),
+    /** Pagamento direto entre as partes: apenas informado, sem movimento financeiro. */
+    pagaEm: text('paga_em'),
+    situacao: text('situacao', { enum: ['PREVISTA', 'PAGA', 'CANCELADA'] }).notNull().default('PREVISTA')
+  },
+  (t) => [index('ix_venda_parcela').on(t.vendaId)]
+)
+
+export const comissao = sqliteTable('comissao', {
+  id: integer('id').primaryKey(),
+  origem: text('origem', { enum: ['VENDA', 'LOCACAO'] }).notNull(),
+  vendaId: integer('venda_id').references(() => venda.id, { onDelete: 'restrict' }),
+  contratoId: integer('contrato_id').references(() => contratoLocacao.id, { onDelete: 'restrict' }),
+  negocioId: integer('negocio_id').references(() => negocio.id, { onDelete: 'restrict' }),
+  baseCentavos: integer('base_centavos').notNull(),
+  percentualBp: integer('percentual_bp').notNull(),
+  valorCentavos: integer('valor_centavos').notNull(),
+  /** Quem paga a comissão (venda). Na locação é a intermediação retida no 1º aluguel. */
+  pagadorId: integer('pagador_id').references(() => pessoa.id, { onDelete: 'restrict' }),
+  /** Título a receber próprio da comissão (nulo quando descontada do sinal ou na locação). */
+  tituloId: integer('titulo_id').references(() => titulo.id, { onDelete: 'restrict' }),
+  situacao: text('situacao', { enum: ['ATIVA', 'CANCELADA'] }).notNull().default('ATIVA'),
+  motivoCancelamento: text('motivo_cancelamento'),
+  ...carimbos
+})
+
+export const comissaoRateio = sqliteTable(
+  'comissao_rateio',
+  {
+    id: integer('id').primaryKey(),
+    comissaoId: integer('comissao_id')
+      .notNull()
+      .references(() => comissao.id, { onDelete: 'restrict' }),
+    papel: text('papel', { enum: ['IMOBILIARIA', 'CAPTADOR', 'VENDEDOR', 'GERENTE', 'PARCEIRO', 'OUTRO'] }).notNull(),
+    /** Nulo = parte da própria imobiliária. */
+    beneficiarioId: integer('beneficiario_id').references(() => pessoa.id, { onDelete: 'restrict' }),
+    percentualBp: integer('percentual_bp').notNull(),
+    valorCentavos: integer('valor_centavos').notNull(),
+    ordem: integer('ordem').notNull()
+  },
+  (t) => [index('ix_comissao_rateio').on(t.comissaoId)]
+)
+
+/** Parcela da comissão liberada ao beneficiário após o recebimento pela imobiliária (gera título a pagar). */
+export const comissaoLiberacao = sqliteTable(
+  'comissao_liberacao',
+  {
+    id: integer('id').primaryKey(),
+    rateioId: integer('rateio_id')
+      .notNull()
+      .references(() => comissaoRateio.id, { onDelete: 'restrict' }),
+    baixaId: integer('baixa_id').references(() => baixa.id, { onDelete: 'restrict' }),
+    valorCentavos: integer('valor_centavos').notNull(),
+    tituloId: integer('titulo_id')
+      .notNull()
+      .references(() => titulo.id, { onDelete: 'restrict' }),
+    cancelada: integer('cancelada', { mode: 'boolean' }).notNull().default(false),
+    criadoEm: text('criado_em').notNull()
+  },
+  (t) => [index('ix_comissao_liberacao').on(t.rateioId)]
+)

@@ -151,6 +151,21 @@ function registrarSituacao(infra: Infra, ator: Ator, ofertaId: number, de: strin
   if (de !== null) infra.db.update(imovelOferta).set({ situacao: para, situacaoDesde: ts, atualizadoPor: ator.id, atualizadoEm: ts }).where(eq(imovelOferta.id, ofertaId)).run()
 }
 
+/**
+ * Altera a situação da oferta por decorrência de outro módulo (negociação, venda, distrato), dentro da
+ * transação do chamador. Vendido inativa a oferta de locação (salvo imóvel alugado). Retorna se mudou.
+ */
+export function aplicarSituacaoOferta(infra: Infra, ator: Ator, imovelId: number, modalidade: Modalidade, para: SituacaoOferta, motivo: string, somenteDe?: SituacaoOferta[]): boolean {
+  const o = infra.db.select().from(imovelOferta).where(and(eq(imovelOferta.imovelId, imovelId), eq(imovelOferta.modalidade, modalidade))).get()
+  if (!o || o.situacao === para || (somenteDe && !somenteDe.includes(o.situacao as SituacaoOferta))) return false
+  registrarSituacao(infra, ator, o.id, o.situacao, para, motivo)
+  if (modalidade === 'VENDA' && para === 'VENDIDO') {
+    const loc = infra.db.select().from(imovelOferta).where(and(eq(imovelOferta.imovelId, imovelId), eq(imovelOferta.modalidade, 'LOCACAO'))).get()
+    if (loc && !['INATIVO', 'ALUGADO'].includes(loc.situacao)) registrarSituacao(infra, ator, loc.id, loc.situacao, 'INATIVO', `Imóvel vendido (oferta de venda #${o.id})`)
+  }
+  return true
+}
+
 /** Sincroniza as ofertas com o cadastro: cria, atualiza valores, desativa ou reativa. */
 function gravarOfertas(infra: Infra, ator: Ator, imovelId: number, d: ImovelDados): void {
   const existentes = ofertasDe(infra, imovelId)

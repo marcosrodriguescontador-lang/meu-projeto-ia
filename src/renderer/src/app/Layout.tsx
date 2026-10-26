@@ -1,4 +1,4 @@
-import { AlertTriangle, ChartLine, FileBarChart, ArrowDownToLine, ArrowUpFromLine, Building2, CalendarCheck, ChevronLeft, Percent, Send, TrendingUp, ClipboardList, FileSignature, Gauge, HardDriveDownload, Handshake, KeyRound, Landmark, Lock, LogOut, Moon, Settings, ShieldCheck, Sun, Users, Wrench, UserCog } from 'lucide-react'
+import { AlertTriangle, BadgePercent, CalendarDays, ChartLine, Contact, FileBarChart, Filter, PieChart, ArrowDownToLine, ArrowUpFromLine, Building2, CalendarCheck, ChevronLeft, Percent, Send, TrendingUp, ClipboardList, FileSignature, Gauge, HardDriveDownload, KeyRound, Landmark, Lock, LogOut, Moon, Settings, ShieldCheck, Sun, Users, Wrench, UserCog } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { LimiteErro } from '@/components/LimiteErro'
@@ -31,9 +31,18 @@ const GRUPOS: { titulo: string; itens: ItemMenu[] }[] = [
     itens: [
       { rota: '/locacoes', rotulo: 'Locações', icone: <KeyRound />, permissao: 'locacoes.ver' },
       { rota: '/reajustes', rotulo: 'Reajustes', icone: <TrendingUp />, permissao: 'locacoes.ver' },
-      { rotulo: 'Vendas e CRM', icone: <Handshake />, fase: 5 },
       { rotulo: 'Documentos', icone: <FileSignature />, fase: 6 },
       { rotulo: 'Manutenção', icone: <Wrench />, fase: 6 }
+    ]
+  },
+  {
+    titulo: 'Comercial',
+    itens: [
+      { rota: '/crm/leads', rotulo: 'Leads', icone: <Contact />, permissao: 'crm.ver' },
+      { rota: '/crm/funil', rotulo: 'Funil de negócios', icone: <Filter />, permissao: 'crm.ver' },
+      { rota: '/crm/agenda', rotulo: 'Agenda', icone: <CalendarDays />, permissao: 'crm.ver' },
+      { rota: '/crm/indicadores', rotulo: 'Indicadores', icone: <PieChart />, permissao: 'crm.ver' },
+      { rota: '/comissoes', rotulo: 'Comissões', icone: <BadgePercent />, permissao: 'comissoes.ver' }
     ]
   },
   {

@@ -21,6 +21,12 @@ import { ListaContratos } from '@/features/locacoes/ListaContratos'
 import { Reajustes } from '@/features/locacoes/Reajustes'
 import { Cobrancas } from '@/features/financeiro/Cobrancas'
 import { ContaDetalhe } from '@/features/financeiro/ContaDetalhe'
+import { Agenda } from '@/features/crm/Agenda'
+import { Comissoes } from '@/features/crm/Comissoes'
+import { Funil } from '@/features/crm/Funil'
+import { IndicadoresCrm } from '@/features/crm/Indicadores'
+import { ListaLeads, PaginaLead } from '@/features/crm/Leads'
+import { PaginaNegocio } from '@/features/crm/Negocio'
 import { Contas } from '@/features/financeiro/Contas'
 import { FluxoCaixa } from '@/features/financeiro/FluxoCaixa'
 import { Relatorios } from '@/features/financeiro/Relatorios'
@@ -74,6 +80,13 @@ export function App() {
             <Route path="locacoes/novo" element={<Protegida permissao="locacoes.gerenciar"><FormContrato /></Protegida>} />
             <Route path="locacoes/:id" element={<Protegida permissao="locacoes.ver"><FormContrato key="editar" /></Protegida>} />
             <Route path="reajustes" element={<Protegida permissao="locacoes.ver"><Reajustes /></Protegida>} />
+<Route path="crm/leads" element={<Protegida permissao="crm.ver"><ListaLeads /></Protegida>} />
+            <Route path="crm/leads/:id" element={<Protegida permissao="crm.ver"><PaginaLead /></Protegida>} />
+            <Route path="crm/funil" element={<Protegida permissao="crm.ver"><Funil /></Protegida>} />
+            <Route path="crm/negocios/:id" element={<Protegida permissao="crm.ver"><PaginaNegocio /></Protegida>} />
+            <Route path="crm/agenda" element={<Protegida permissao="crm.ver"><Agenda /></Protegida>} />
+            <Route path="crm/indicadores" element={<Protegida permissao="crm.ver"><IndicadoresCrm /></Protegida>} />
+            <Route path="comissoes" element={<Protegida permissao="comissoes.ver"><Comissoes /></Protegida>} />
             <Route path="financeiro/receber" element={<Protegida permissao="financeiro.ver"><Titulos key="receber" sentido="RECEBER" /></Protegida>} />
             <Route path="financeiro/pagar" element={<Protegida permissao="financeiro.ver"><Titulos key="pagar" sentido="PAGAR" /></Protegida>} />
             <Route path="financeiro/cobrancas" element={<Protegida permissao="financeiro.ver"><Cobrancas /></Protegida>} />

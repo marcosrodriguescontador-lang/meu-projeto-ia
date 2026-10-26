@@ -3,7 +3,7 @@
 Sistema desktop de gestão administrativa, comercial e financeira da **Status Negócios Imobiliários** (CRECI 038595-J).
 Funciona 100% offline no Windows, com banco de dados local cifrado, auditoria imutável e backup cifrado.
 
-**Situação:** Fases 1 (Fundação), 2 (Imóveis), 3 (Locações e núcleo financeiro) e 4 (Financeiro completo) concluídas — ver relatórios em [`docs/`](docs/) (`fase-1-entrega.md` a `fase-4-entrega.md`).
+**Situação:** Fases 1 (Fundação), 2 (Imóveis), 3 (Locações e núcleo financeiro), 4 (Financeiro completo) e 5 (Vendas e CRM) concluídas — ver relatórios em [`docs/`](docs/) (`fase-1-entrega.md` a `fase-5-entrega.md`).
 
 ## Tecnologias
 Electron · React 19 · TypeScript · Tailwind CSS 4 · SQLite/SQLCipher (`better-sqlite3-multiple-ciphers`) · Drizzle ORM · Zod · Argon2id · Vitest · Playwright · electron-builder (NSIS)
@@ -16,7 +16,7 @@ Electron · React 19 · TypeScript · Tailwind CSS 4 · SQLite/SQLCipher (`bette
 | `npm test` | Testes automatizados (domínio, segurança, backup) |
 | `npm run typecheck` | Verificação de tipos (main e interface) |
 | `npm run build` | Compila para `out/` |
-| `node tests/e2e/faseN.e2e.cjs` (N = 1 a 4) | Testes ponta a ponta no app real (após `build`; em Linux sem monitor use `xvfb-run -a`) |
+| `node tests/e2e/faseN.e2e.cjs` (N = 1 a 5) | Testes ponta a ponta no app real (após `build`; em Linux sem monitor use `xvfb-run -a`) |
 | `npm run dist:win` | Gera o instalador Windows em `release/` (executar no Windows ou via CI) |
 | `npm run db:generate` | Gera migração a partir de `src/main/infra/db/schema.ts` |
 

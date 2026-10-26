@@ -16,6 +16,7 @@ const colunas = {
   perfilId: usuario.perfilId,
   perfilNome: perfil.nome,
   pessoaId: usuario.pessoaId,
+  pessoaNome: pessoa.nome,
   ativo: usuario.ativo,
   bloqueadoAte: usuario.bloqueadoAte,
   deveTrocarSenha: usuario.deveTrocarSenha,
@@ -23,7 +24,7 @@ const colunas = {
 }
 
 function consultar(infra: Infra) {
-  return infra.db.select(colunas).from(usuario).innerJoin(perfil, eq(perfil.id, usuario.perfilId))
+  return infra.db.select(colunas).from(usuario).innerJoin(perfil, eq(perfil.id, usuario.perfilId)).leftJoin(pessoa, eq(pessoa.id, usuario.pessoaId))
 }
 
 export function obterUsuarioDto(infra: Infra, id: number): UsuarioDto {

@@ -8,6 +8,9 @@ import { baixa, contaFinanceira, contratoLancamento, titulo, tituloItem, usuario
 import { agoraIso, exigir, type Ator, type Infra } from '../../nucleo/contexto'
 import { auditar, type Autor } from '../seguranca/auditoria'
 
+/** Títulos gerenciados por vendas e comissões: cancelamento e renegociação só pelo próprio módulo. */
+export const ORIGENS_GERENCIADAS = ['COMISSAO_VENDA', 'COMISSAO_CORRETOR', 'SINAL_VENDA', 'PARCELA_VENDA']
+
 export type DestinoItem = 'PROPRIETARIO' | 'TERCEIRO' | 'IMOBILIARIA' | 'CAUCAO' | 'PASSIVO' | 'DESPESA'
 
 export interface ItemNovo {
@@ -151,6 +154,7 @@ export function cancelarTitulo(infra: Infra, ator: Ator, id: number, motivo: str
     if (['CANCELADO', 'RENEGOCIADO', 'LIQUIDADO'].includes(t.situacao)) throw erro.regra('Título não pode ser cancelado nesta situação.')
     if (baixasAtivas(infra, id)) throw erro.regra('Título possui baixas. Estorne-as antes de cancelar.')
     if (t.repasseId && !interno) throw erro.regra('Título de repasse: cancele o repasse.')
+    if (!interno && ORIGENS_GERENCIADAS.includes(t.origem)) throw erro.regra('Título de venda/comissão: cancele pela venda ou pela comissão.')
     infra.db
       .update(titulo)
       .set({ situacao: 'CANCELADO', motivoCancelamento: motivo.trim(), chaveIdempotencia: t.chaveIdempotencia ? `${t.chaveIdempotencia}:CANCELADO:${id}` : null, atualizadoPor: ator.id, atualizadoEm: agoraIso(infra) })

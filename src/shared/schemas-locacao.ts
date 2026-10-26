@@ -26,7 +26,11 @@ export const ORIGENS_TITULO = {
   PAGAMENTO_TERCEIRO: 'Pagamento a terceiro',
   DEVOLUCAO_CAUCAO: 'Devolução de caução',
   DESPESA: 'Despesa da imobiliária',
-  RECEITA_PROPRIA: 'Receita própria'
+  RECEITA_PROPRIA: 'Receita própria',
+  COMISSAO_VENDA: 'Comissão de venda',
+  COMISSAO_CORRETOR: 'Comissão a pagar',
+  SINAL_VENDA: 'Sinal de venda',
+  PARCELA_VENDA: 'Parcela de venda'
 } as const
 
 const competencia = z.string().refine(validarCompetencia, 'Competência inválida (AAAA-MM)')

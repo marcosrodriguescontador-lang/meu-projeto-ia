@@ -1,12 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
-import { Building2, HardDriveDownload, KeyRound, UserPlus, Users } from 'lucide-react'
+import { useState } from 'react'
+import { Building2, CalendarDays, Filter, HardDriveDownload, KeyRound, UserPlus, Users } from 'lucide-react'
 import { formatarMoeda } from '@shared/dinheiro'
 import { Link } from 'react-router-dom'
 import { PAPEIS, type Papel } from '@shared/schemas'
 import { useSessao } from '@/app/sessao'
 import { GraficoColunas } from '@/components/Graficos'
 import { formatarCompetencia } from '@shared/financeiro/datas'
-import { Aviso, Botao, CabecalhoPagina, Cartao, Indicador } from '@/components/ui'
+import { Aviso, Botao, CabecalhoPagina, Cartao, Indicador, Selecao } from '@/components/ui'
 import { dataHora } from '@/lib/formato'
 import { rpc } from '@/lib/rpc'
 
@@ -14,6 +15,8 @@ export function Painel() {
   const { sessao, pode } = useSessao()
   const { data } = useQuery({ queryKey: ['painel'], queryFn: () => rpc('painel.indicadores'), staleTime: 0, refetchOnMount: 'always' })
   const papeis = Object.entries(PAPEIS) as [Papel, string][]
+  const [meses, setMeses] = useState('12')
+  const mensal = data?.financeiro?.mensal.slice(-Number(meses)) ?? []
   return (
     <>
       <CabecalhoPagina
@@ -54,23 +57,46 @@ export function Painel() {
           <Indicador rotulo="A receber no mês" valor={formatarMoeda(data.financeiro.receberMesCentavos)} detalhe="Em aberto até o fim do mês" />
           <Indicador rotulo="Aluguéis vencidos" valor={formatarMoeda(data.financeiro.vencidosCentavos)} tom={data.financeiro.vencidosQuantidade ? 'perigo' : 'neutro'} detalhe={`${data.financeiro.vencidosQuantidade} título(s)`} />
           <Indicador rotulo="Repasses pendentes" valor={formatarMoeda(data.financeiro.repassesPendentesCentavos)} detalhe="Recursos de terceiros a repassar" />
-          <Indicador rotulo="Receita própria no mês" valor={formatarMoeda(data.financeiro.receitaPropriaMesCentavos)} tom="destaque" detalhe="Taxas e receitas da imobiliária (regime de caixa)" />
+          <Indicador rotulo="Receita própria no mês" valor={formatarMoeda(data.financeiro.receitaPropriaMesCentavos)} tom="destaque" detalhe="Taxas, comissões e demais receitas da imobiliária (caixa)" />
           <Indicador rotulo="Saldo em contas" valor={formatarMoeda(data.financeiro.saldoContasCentavos)} detalhe="Próprias + terceiros" />
+          <Indicador rotulo="Despesas no mês" valor={formatarMoeda(data.financeiro.despesasMesCentavos)} detalhe="Despesas administrativas pagas" />
+          <Indicador rotulo="Resultado do mês" valor={formatarMoeda(data.financeiro.resultadoMesCentavos)} tom={data.financeiro.resultadoMesCentavos < 0 ? 'perigo' : 'destaque'} detalhe="Receitas próprias − despesas" />
+          <Indicador rotulo="Comissões a receber" valor={formatarMoeda(data.financeiro.comissoesReceberCentavos)} detalhe="Comissões de venda em aberto" />
         </div>
       )}
       {data?.financeiro && (
-        <Cartao titulo="Receitas próprias e despesas da imobiliária — últimos 12 meses" className="mb-4">
+        <Cartao
+          titulo={`Receitas próprias e despesas da imobiliária — últimos ${meses} meses`}
+          className="mb-4"
+          acoes={<Selecao aria-label="Período do gráfico" className="h-8 w-40" opcoes={{ '6': 'Últimos 6 meses', '12': 'Últimos 12 meses', '24': 'Últimos 24 meses' }} value={meses} onChange={(e) => setMeses(e.target.value)} />}
+        >
           <GraficoColunas
-            titulo="Receitas próprias e despesas — últimos 12 meses"
-            categorias={data.financeiro.mensal.map((m) => formatarCompetencia(m.competencia).replace(/\/\d{2}(\d{2})$/, '/$1'))}
+            titulo={`Receitas próprias e despesas — últimos ${meses} meses`}
+            categorias={mensal.map((m) => formatarCompetencia(m.competencia).replace(/\/\d{2}(\d{2})$/, '/$1'))}
             series={[
-              { nome: 'Receitas próprias', cor: 1, valores: data.financeiro.mensal.map((m) => m.receitas) },
-              { nome: 'Despesas', cor: 2, valores: data.financeiro.mensal.map((m) => m.despesas) }
+              { nome: 'Receitas próprias', cor: 1, valores: mensal.map((m) => m.receitas) },
+              { nome: 'Despesas', cor: 2, valores: mensal.map((m) => m.despesas) }
             ]}
             formatar={formatarMoeda}
           />
           <div className="mt-2 text-xs text-texto-3">Regime de caixa. Aluguéis recebidos não são receita da imobiliária: entram apenas as taxas, comissões e demais receitas próprias.</div>
         </Cartao>
+      )}
+      {data?.crm && (
+        <div className="mb-4 grid grid-cols-4 gap-4">
+          <Link to="/crm/funil">
+            <Indicador rotulo="Negócios em andamento" valor={data.crm.negociosVenda + data.crm.negociosLocacao} detalhe={`${data.crm.negociosVenda} de venda · ${data.crm.negociosLocacao} de locação`} icone={<Filter className="size-4" />} />
+          </Link>
+          <Link to="/crm/leads">
+            <Indicador rotulo="Leads novos no mês" valor={data.crm.leadsNovosMes} />
+          </Link>
+          <Link to="/crm/agenda">
+            <Indicador rotulo="Minhas tarefas" valor={data.crm.tarefasHoje} tom={data.crm.tarefasAtrasadas ? 'perigo' : 'neutro'} detalhe={`para hoje · ${data.crm.tarefasAtrasadas} atrasada(s)`} icone={<CalendarDays className="size-4" />} />
+          </Link>
+          <Link to="/crm/agenda">
+            <Indicador rotulo="Visitas nos próximos 7 dias" valor={data.crm.visitasProximos7Dias} />
+          </Link>
+        </div>
       )}
       {data?.imoveis && (
         <div className="mb-4 grid grid-cols-4 gap-4">
@@ -111,7 +137,7 @@ export function Painel() {
         </Cartao>
         <Cartao titulo="Próximas etapas">
           <ul className="space-y-2 text-sm text-texto-2">
-            <li>Comissões e funil — Fase 5</li>
+            <li>Modelos de documentos, vistorias e manutenção — Fase 6</li>
           </ul>
           <div className="mt-3 text-xs text-texto-3">Cada indicador aparece aqui quando o módulo correspondente tiver dados reais.</div>
         </Cartao>

@@ -33,7 +33,8 @@ export const RELATORIOS = {
   repassar: 'Valores a repassar aos proprietários',
   terceiros: 'Posição de recursos de terceiros',
   extratoProprietario: 'Extrato do proprietário',
-  dimob: 'Base para a DIMOB (locações)'
+  dimob: 'Base para a DIMOB (locações)',
+  comissoes: 'Comissões por corretor'
 } as const
 
 export type CodigoRelatorio = keyof typeof RELATORIOS

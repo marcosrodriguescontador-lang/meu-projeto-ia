@@ -10,7 +10,8 @@ import { useSessao } from '@/app/sessao'
 import { Abas, Aviso, Botao, CabecalhoPagina, Campo, Cartao, Confirmacao, cx, Dialogo, Entrada, Indicador, Selecao, Selo, Tabela, useToast } from '@/components/ui'
 import { rpc } from '@/lib/rpc'
 import { invalidarFinanceiro } from './comum'
-import { SeletorCategoria, SeletorPessoa } from './NovoTitulo'
+import { SeletorPessoa } from '@/features/pessoas/BuscaPessoa'
+import { SeletorCategoria } from './NovoTitulo'
 
 type Aba = 'conciliacao' | 'movimentos' | 'transferencias' | 'importacoes'
 

@@ -33,6 +33,13 @@ export const PERMISSOES = {
   'financeiro.renegociar': 'Renegociar débitos',
   'financeiro.repasses': 'Gerar e cancelar repasses',
   'financeiro.contas': 'Cadastrar contas bancárias e caixa',
+  'crm.ver': 'Visualizar leads, negócios, visitas e tarefas',
+  'crm.gerenciar': 'Cadastrar e movimentar leads, negócios, visitas e tarefas',
+  'crm.carteira_toda': 'Ver e atuar nos clientes e negócios de todos os corretores',
+  'vendas.propostas': 'Registrar propostas e contrapropostas',
+  'vendas.registrar': 'Registrar vendas, escritura e distrato',
+  'comissoes.ver': 'Consultar comissões',
+  'comissoes.gerenciar': 'Definir rateio de comissões e modelo padrão',
   'indices.gerenciar': 'Cadastrar índices econômicos e feriados',
   'auditoria.ver': 'Consultar auditoria',
   'backup.executar': 'Executar backup',
@@ -51,6 +58,9 @@ export const GRUPOS_PERMISSAO: Record<string, string> = {
   imoveis: 'Imóveis',
   locacoes: 'Locações',
   financeiro: 'Financeiro',
+  crm: 'CRM',
+  vendas: 'Vendas',
+  comissoes: 'Comissões',
   indices: 'Índices e feriados',
   auditoria: 'Auditoria',
   backup: 'Backup',
@@ -69,17 +79,18 @@ export const PERFIS_PADRAO: { nome: string; descricao: string; permissoes: Permi
     descricao: 'Operações financeiras e dados bancários',
     permissoes: ['pessoas.ver', 'pessoas.criar', 'pessoas.editar', 'pessoas.dados_bancarios.ver', 'pessoas.dados_bancarios.editar', 'pessoas.documentos.ver', 'imoveis.ver', 'imoveis.dados_internos.ver', 'imoveis.documentos.ver', 'backup.executar',
       'locacoes.ver', 'locacoes.gerenciar', 'locacoes.reajustar', 'financeiro.ver', 'financeiro.gerar_cobrancas', 'financeiro.receber', 'financeiro.pagar', 'financeiro.estornar',
-      'financeiro.dispensar_encargos', 'financeiro.renegociar', 'financeiro.repasses', 'financeiro.contas', 'indices.gerenciar']
+      'financeiro.dispensar_encargos', 'financeiro.renegociar', 'financeiro.repasses', 'financeiro.contas', 'indices.gerenciar', 'comissoes.ver', 'comissoes.gerenciar', 'crm.ver', 'crm.carteira_toda']
   },
   {
     nome: 'Corretor',
     descricao: 'Atendimento comercial',
-    permissoes: ['pessoas.ver', 'pessoas.criar', 'pessoas.editar', 'pessoas.documentos.ver', 'pessoas.documentos.gerenciar', 'imoveis.ver', 'imoveis.criar', 'imoveis.editar', 'imoveis.situacao', 'imoveis.dados_internos.ver', 'imoveis.documentos.ver', 'imoveis.documentos.gerenciar', 'locacoes.ver']
+    permissoes: ['pessoas.ver', 'pessoas.criar', 'pessoas.editar', 'pessoas.documentos.ver', 'pessoas.documentos.gerenciar', 'imoveis.ver', 'imoveis.criar', 'imoveis.editar', 'imoveis.situacao', 'imoveis.dados_internos.ver', 'imoveis.documentos.ver', 'imoveis.documentos.gerenciar', 'locacoes.ver',
+      'crm.ver', 'crm.gerenciar', 'vendas.propostas', 'comissoes.ver']
   },
   {
     nome: 'Atendimento',
     descricao: 'Recepção e cadastro',
-    permissoes: ['pessoas.ver', 'pessoas.criar', 'pessoas.editar', 'pessoas.documentos.ver', 'pessoas.documentos.gerenciar', 'imoveis.ver', 'locacoes.ver', 'financeiro.ver']
+    permissoes: ['pessoas.ver', 'pessoas.criar', 'pessoas.editar', 'pessoas.documentos.ver', 'pessoas.documentos.gerenciar', 'imoveis.ver', 'locacoes.ver', 'financeiro.ver', 'crm.ver', 'crm.gerenciar', 'crm.carteira_toda']
   },
   { nome: 'Consulta', descricao: 'Somente leitura', permissoes: ['pessoas.ver', 'imoveis.ver', 'locacoes.ver'] }
 ]

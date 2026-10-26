@@ -25,6 +25,7 @@ import { lerLogoDataUrl, gerarPdf } from './electron-util'
 import type { Metodos } from './roteador'
 import { criarMetodosFinanceiros } from './metodos-financeiro'
 import { criarMetodosTesouraria } from './metodos-tesouraria'
+import { criarMetodosCrm } from './metodos-crm'
 
 export interface DependenciasMetodos {
   versaoApp: string
@@ -285,6 +286,7 @@ export function criarMetodos(dep: DependenciasMetodos): Metodos {
     'painel.indicadores': { executar: ({ infra, ator }) => indicadoresPainel(infra, ator) },
 
     ...criarMetodosFinanceiros(dep.dirMarca),
-    ...criarMetodosTesouraria(dep.dirMarca)
+    ...criarMetodosTesouraria(dep.dirMarca),
+    ...criarMetodosCrm()
   }
 }

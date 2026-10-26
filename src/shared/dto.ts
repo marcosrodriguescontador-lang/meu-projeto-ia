@@ -43,6 +43,8 @@ export interface UsuarioDto {
   perfilId: number
   perfilNome: string
   pessoaId: number | null
+  /** Pessoa do cadastro vinculada (ex.: o corretor), usada para restringir à própria carteira. */
+  pessoaNome: string | null
   ativo: boolean
   bloqueadoAte: string | null
   deveTrocarSenha: boolean
@@ -164,6 +166,16 @@ export interface IndicadoresPainel {
   backupAtrasado: boolean
   imoveis: IndicadoresImoveis | null
   financeiro: import('./dto-financeiro').IndicadoresFinanceiros | null
+  crm: IndicadoresCrm | null
+}
+
+export interface IndicadoresCrm {
+  negociosVenda: number
+  negociosLocacao: number
+  leadsNovosMes: number
+  tarefasHoje: number
+  tarefasAtrasadas: number
+  visitasProximos7Dias: number
 }
 
 // ───────────── Imóveis ─────────────

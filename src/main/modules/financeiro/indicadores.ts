@@ -25,15 +25,7 @@ export function indicadoresFinanceiros(infra: Infra): IndicadoresFinanceiros {
     idConta(infra, CONTAS.PROPRIETARIOS)
   )
   const repassesAbertos = q<{ s: number }>(`SELECT coalesce(sum(${SALDO}), 0) s FROM titulo t WHERE t.origem = 'REPASSE' AND t.situacao IN ('ABERTO','PARCIAL')`)
-  const receitas = [CONTAS.RECEITA_ADMINISTRACAO, CONTAS.RECEITA_INTERMEDIACAO, CONTAS.RECEITA_ENCARGOS, CONTAS.RECEITA_OUTRAS].map((c) => idConta(infra, c))
-  const receita = q<{ s: number }>(
-    `SELECT coalesce(sum(p.credito_centavos - p.debito_centavos), 0) s FROM partida p JOIN lancamento l ON l.id = p.lancamento_id
-     WHERE p.conta_gerencial_id IN (${receitas.map(() => '?').join(',')}) AND l.data BETWEEN ? AND ?`,
-    ...receitas,
-    primeiroDia(mes),
-    ultimoDia(mes)
-  )
-  const inicio = adicionarMeses(mes, -11)
+  const inicio = adicionarMeses(mes, -23)
   const porMes = infra.bruto
     .prepare(
       `SELECT substr(l.data, 1, 7) competencia,
@@ -43,20 +35,30 @@ export function indicadoresFinanceiros(infra: Infra): IndicadoresFinanceiros {
        WHERE (cg.codigo LIKE '3.%' OR cg.codigo LIKE '4.%') AND l.data BETWEEN ? AND ? GROUP BY 1`
     )
     .all(primeiroDia(inicio), ultimoDia(mes)) as { competencia: string; receitas: number; despesas: number }[]
-  const mensal = Array.from({ length: 12 }, (_, i) => {
+  const mensal = Array.from({ length: 24 }, (_, i) => {
     const c = adicionarMeses(inicio, i)
     const r = porMes.find((x) => x.competencia === c)
     return { competencia: c, receitas: r?.receitas ?? 0, despesas: r?.despesas ?? 0 }
   })
+  const atual = mensal.at(-1)!
+  // Comissões a receber: saldo em aberto dos itens de comissão (título próprio ou retida do sinal).
+  const comissoes = q<{ s: number }>(
+    `SELECT coalesce(sum(ti.valor_centavos - coalesce((SELECT sum(bi.pago_centavos + bi.desconto_centavos) FROM baixa_item bi JOIN baixa b ON b.id = bi.baixa_id WHERE bi.titulo_item_id = ti.id AND b.estornada = 0), 0)), 0) s
+     FROM titulo_item ti JOIN titulo t ON t.id = ti.titulo_id WHERE ti.conta_gerencial_id = ? AND t.situacao IN ('ABERTO','PARCIAL')`,
+    idConta(infra, '3.2.01')
+  )
   return {
     mensal,
+    comissoesReceberCentavos: comissoes.s,
+    despesasMesCentavos: atual.despesas,
+    resultadoMesCentavos: atual.receitas - atual.despesas,
     contratosAtivos: contratos.ativos,
     contratosVencendo60: contratos.vencendo,
     receberMesCentavos: receber.s,
     vencidosCentavos: vencidos.s,
     vencidosQuantidade: vencidos.n,
     repassesPendentesCentavos: pendente.s + repassesAbertos.s,
-    receitaPropriaMesCentavos: receita.s,
+    receitaPropriaMesCentavos: atual.receitas,
     saldoContasCentavos: listarContasFinanceiras(infra, { id: null, login: 'sistema' }).reduce((s, c) => s + c.saldoAtualCentavos, 0),
     reajustesPendentes: contratos.reajustes
   }

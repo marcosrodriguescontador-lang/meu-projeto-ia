@@ -7,13 +7,13 @@ import { Entrada } from '@/components/ui'
 import { SeloSituacao } from '@/features/imoveis/comum'
 import { rpc } from '@/lib/rpc'
 
-export function BuscaImovel({ aoSelecionar }: { aoSelecionar: (i: ImovelResumo) => void }) {
+export function BuscaImovel({ aoSelecionar, modalidade = 'LOCACAO' }: { aoSelecionar: (i: ImovelResumo) => void; modalidade?: 'VENDA' | 'LOCACAO' }) {
   const [termo, setTermo] = useState('')
-  const { data } = useQuery({ queryKey: ['busca-imovel', termo], queryFn: () => rpc('imoveis.listar', { busca: termo, modalidade: 'LOCACAO', porPagina: 10 }), enabled: termo.trim().length >= 1 })
+  const { data } = useQuery({ queryKey: ['busca-imovel', modalidade, termo], queryFn: () => rpc('imoveis.listar', { busca: termo, modalidade, porPagina: 10 }), enabled: termo.trim().length >= 1 })
   return (
     <div className="relative">
       <Search className="absolute top-2.5 left-3 size-4 text-texto-3" />
-      <Entrada className="pl-9" placeholder="Buscar imóvel com oferta de locação (código ou endereço)" value={termo} onChange={(e) => setTermo(e.target.value)} />
+      <Entrada className="pl-9" placeholder={`Buscar imóvel com oferta de ${modalidade === 'VENDA' ? 'venda' : 'locação'} (código ou endereço)`} value={termo} onChange={(e) => setTermo(e.target.value)} />
       {termo.trim() && (
         <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border border-borda bg-superficie shadow-lg">
           {data?.itens.length === 0 && <div className="p-3 text-sm text-texto-3">Nenhum imóvel encontrado.</div>}

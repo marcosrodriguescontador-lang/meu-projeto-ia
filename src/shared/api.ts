@@ -4,6 +4,8 @@ import type * as S from './schemas'
 import type * as F from './dto-financeiro'
 import type * as L from './schemas-locacao'
 import type * as R from './relatorios'
+import type * as C from './dto-crm'
+import type * as K from './schemas-crm'
 import type { MapaCsv } from './financeiro/extratos'
 
 type P<T> = T
@@ -150,6 +152,47 @@ export interface ContratoApi {
   'relatorios.gerar': [{ codigo: R.CodigoRelatorio; parametros: R.ParametrosRelatorio }, R.RelatorioDados]
   'relatorios.exportar': [{ codigo: R.CodigoRelatorio; parametros: R.ParametrosRelatorio; formato: 'PDF' | 'XLSX' }, boolean]
   'relatorios.fluxoCaixa': [{ mesesAnteriores?: number; mesesFuturos?: number; titularidade?: 'TODAS' | 'PROPRIO' | 'TERCEIROS' }, R.PontoFluxo[]]
+
+  'crm.origens': [void, { id: number; nome: string; ativa: boolean }[]]
+  'crm.criarOrigem': [{ nome: string }, { id: number }]
+  'crm.corretores': [void, { id: number; nome: string }[]]
+  'leads.listar': [{ busca?: string; situacao?: string; origemId?: number; corretorId?: number; interesse?: string }, C.LeadResumo[]]
+  'leads.obter': [{ id: number }, C.LeadDetalhe]
+  'leads.criar': [K.LeadInput, { id: number }]
+  'leads.atualizar': [{ id: number; dados: K.LeadInput }, void]
+  'leads.descartar': [{ id: number; motivo: string }, void]
+  'leads.reativar': [{ id: number }, void]
+  'leads.interesse': [{ leadId: number; imovelId: number; incluir: boolean }, void]
+  'leads.sugestoes': [{ id: number }, C.ImovelInteresse[]]
+  'leads.atividades': [{ id: number }, C.AtividadeDto[]]
+  'leads.visitas': [{ id: number }, C.VisitaDto[]]
+  'negocios.listar': [{ tipo?: 'VENDA' | 'LOCACAO'; corretorId?: number; busca?: string; incluirEncerrados?: boolean; leadId?: number; imovelId?: number }, C.NegocioCartao[]]
+  'negocios.obter': [{ id: number }, C.NegocioDetalhe]
+  'negocios.criar': [K.NegocioInput, { id: number }]
+  'negocios.atualizar': [{ id: number; dados: Omit<K.NegocioInput, 'tipo' | 'etapa'> }, void]
+  'negocios.mover': [K.MoverEtapaInput, void]
+  'negocios.concluirLocacao': [{ negocioId: number; contratoId: number }, void]
+  'negocios.indicadores': [{ tipo: 'VENDA' | 'LOCACAO'; de: string; ate: string; corretorId?: number }, C.IndicadoresFunil]
+  'atividades.criar': [K.AtividadeInput, { id: number }]
+  'atividades.concluir': [{ id: number; resultado: string }, void]
+  'atividades.cancelar': [{ id: number; motivo: string }, void]
+  'atividades.reagendar': [{ id: number; agendadaPara: string }, void]
+  'visitas.agendar': [K.VisitaInput, { id: number }]
+  'visitas.resultado': [K.ResultadoVisitaInput, void]
+  'agenda.listar': [{ de: string; ate: string; responsavelId?: number; incluirConcluidas?: boolean }, C.AgendaItem[]]
+  'propostas.registrar': [K.PropostaInput, { id: number }]
+  'propostas.responder': [K.ResponderPropostaInput, void]
+  'vendas.registrar': [K.VendaInput, { vendaId: number; comissaoId: number | null }]
+  'vendas.situacao': [K.SituacaoVendaInput, { avisos: string[] }]
+  'vendas.parcelaPaga': [{ parcelaId: number; data: string }, void]
+  'comissoes.listar': [{ situacao?: 'ATIVA' | 'CANCELADA'; origem?: 'VENDA' | 'LOCACAO' }, C.ComissaoDto[]]
+  'comissoes.obter': [{ id: number }, C.ComissaoDto]
+  'comissoes.rateio': [{ id: number; rateio: K.RateioInput }, void]
+  'comissoes.cancelar': [{ id: number; motivo: string }, void]
+  'comissoes.locacao': [K.ComissaoLocacaoInput, { comissaoId: number }]
+  'comissoes.porBeneficiario': [void, C.LinhaComissaoBeneficiario[]]
+  'comissoes.rateioPadrao': [void, K.RateioPadrao]
+  'comissoes.salvarRateioPadrao': [K.RateioPadrao, void]
 
   'auditoria.listar': [
     { entidade?: string; usuario?: string; de?: string; ate?: string; busca?: string; pagina?: number; porPagina?: number },

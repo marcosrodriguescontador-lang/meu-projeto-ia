@@ -11,7 +11,7 @@ import { agoraIso, exigir, pode, type Ator, type Infra } from '../../nucleo/cont
 import { auditar } from '../seguranca/auditoria'
 import { feriadosLocais } from './cadastros'
 import { CONTAS, idConta } from './razao'
-import { criarTitulo, itensComSaldo, type ItemNovo } from './titulos'
+import { criarTitulo, itensComSaldo, ORIGENS_GERENCIADAS, type ItemNovo } from './titulos'
 import { eq } from 'drizzle-orm'
 
 export function renegociar(infra: Infra, ator: Ator, entrada: RenegociacaoInput): { renegociacaoId: number; titulos: number[] } {
@@ -22,6 +22,7 @@ export function renegociar(infra: Infra, ator: Ator, entrada: RenegociacaoInput)
     const originais = infra.db.select().from(titulo).where(inArray(titulo.id, d.titulos)).all()
     if (originais.length !== new Set(d.titulos).size) throw erro.validacao('Título não encontrado.')
     if (originais.some((t) => t.sentido !== 'RECEBER' || !['ABERTO', 'PARCIAL'].includes(t.situacao))) throw erro.regra('Somente títulos a receber em aberto podem ser renegociados.')
+    if (originais.some((t) => ORIGENS_GERENCIADAS.includes(t.origem))) throw erro.regra('Títulos de venda e comissão não podem ser renegociados.')
     if (new Set(originais.map((t) => t.pessoaId)).size > 1) throw erro.regra('Os títulos devem ser do mesmo devedor.')
     if (new Set(originais.map((t) => t.contratoId)).size > 1) throw erro.regra('Os títulos devem ser do mesmo contrato.')
     const base = originais[0]!

@@ -13,6 +13,7 @@ import { agoraIso, exigir, pode, type Ator, type Infra } from '../../nucleo/cont
 import { auditar } from '../seguranca/auditoria'
 import { exigirContaAtiva, saldoContaFinanceira } from './cadastros'
 import { CONTAS, estornarLancamento, registrarLancamento, type PartidaNova } from './razao'
+import { sincronizarPorTitulo } from './comissoes'
 import { atualizarSituacao, itensComSaldo, obterTituloBruto, saldoTitulo } from './titulos'
 
 export function locadoresDoContrato(infra: Infra, contratoId: number): { pessoaId: number; percentualBp: number }[] {
@@ -129,6 +130,8 @@ export function receber(infra: Infra, ator: Ator, entrada: BaixaReceberInput): R
       infra.db.update(baixa).set({ lancamentoId }).where(eq(baixa.id, baixaId)).run()
     }
     const situacao = atualizarSituacao(infra, t.id)
+    // Comissões ligadas ao título: libera aos beneficiários a parte proporcional ao recebido.
+    sincronizarPorTitulo(infra, ator, t.id, d.data, baixaId)
     auditar(infra, ator, {
       acao: 'RECEBIMENTO_REGISTRADO',
       entidade: 'titulo',
@@ -219,6 +222,7 @@ export function estornarBaixa(infra: Infra, ator: Ator, entrada: { baixaId: numb
       .where(eq(baixa.id, b.id))
       .run()
     atualizarSituacao(infra, t.id)
+    if (t.sentido === 'RECEBER') sincronizarPorTitulo(infra, ator, t.id, hojeIso(infra.agora()))
     if (t.repasseId) infra.db.update(repasse).set({ situacao: 'ABERTO' }).where(and(eq(repasse.id, t.repasseId), eq(repasse.situacao, 'PAGO'))).run()
     auditar(infra, ator, { acao: 'BAIXA_ESTORNADA', entidade: 'titulo', entidadeId: t.id, descricao: `Baixa #${b.id} de ${(b.totalCentavos / 100).toFixed(2)} estornada — motivo: ${d.motivo}` })
   })()

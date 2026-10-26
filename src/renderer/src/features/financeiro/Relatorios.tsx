@@ -5,7 +5,7 @@ import { competenciaDe, hojeIso, primeiroDia, ultimoDia } from '@shared/financei
 import { formatarCelula, RELATORIOS, type CodigoRelatorio, type ParametrosRelatorio } from '@shared/relatorios'
 import { useSessao } from '@/app/sessao'
 import { Aviso, Botao, CabecalhoPagina, Campo, Cartao, cx, Entrada, Selecao, useToast } from '@/components/ui'
-import { SeletorPessoa } from './NovoTitulo'
+import { SeletorPessoa } from '@/features/pessoas/BuscaPessoa'
 import { rpc } from '@/lib/rpc'
 
 type Param = 'periodo' | 'ano' | 'regime' | 'situacao' | 'pessoa' | 'titularidade'
@@ -14,6 +14,7 @@ const GRUPOS: { titulo: string; itens: [CodigoRelatorio, Param[]][] }[] = [
   { titulo: 'Contas', itens: [['receber', ['periodo', 'situacao']], ['pagar', ['periodo', 'situacao']], ['inadimplencia', []]] },
   { titulo: 'Resultado da imobiliária', itens: [['receitas', ['periodo']], ['despesas', ['periodo']], ['resultado', ['ano', 'regime']], ['rentabilidade', ['periodo']], ['fluxo', ['titularidade']]] },
   { titulo: 'Recursos de terceiros', itens: [['repassar', []], ['terceiros', []], ['extratoProprietario', ['pessoa', 'periodo']]] },
+  { titulo: 'Comercial', itens: [['comissoes', []]] },
   { titulo: 'Obrigações acessórias', itens: [['dimob', ['ano']]] }
 ]
 const PARAMS = Object.fromEntries(GRUPOS.flatMap((g) => g.itens)) as Record<CodigoRelatorio, Param[]>
@@ -59,7 +60,7 @@ export function Relatorios() {
             <div key={g.titulo}>
               <div className="mb-1 px-2 text-xs font-semibold tracking-wide text-texto-3 uppercase">{g.titulo}</div>
               {g.itens
-                .filter(([c]) => c !== 'dimob' || pode('pessoas.ver'))
+                .filter(([c]) => (c !== 'dimob' || pode('pessoas.ver')) && (c !== 'comissoes' || pode('comissoes.ver')))
                 .map(([c]) => (
                   <button key={c} type="button" onClick={() => setCodigo(c)} aria-current={c === codigo ? 'page' : undefined} className={cx('block w-full rounded-md px-2 py-1.5 text-left text-sm', c === codigo ? 'bg-superficie font-medium text-texto shadow-sm' : 'text-texto-2 hover:bg-superficie-2')}>
                     {RELATORIOS[c]}

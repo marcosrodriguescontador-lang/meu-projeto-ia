@@ -104,6 +104,24 @@ O sistema não gera o arquivo oficial da Receita: entrega a base por contrato ×
 ## ADR-41 — Gráficos em SVG próprio
 Os gráficos (painel e fluxo de caixa) são componentes SVG sem dependência externa: colunas com ponta arredondada, linha de 2 px, dica ao passar o mouse e no foco do teclado, legenda e tabela equivalente. Paleta de duas séries validada para daltonismo e contraste nos temas claro e escuro; previsto em hachura empilhada sobre o realizado.
 
-## Pendências registradas para a Fase 5
-- Comissões de venda (3.2.01) e de corretores (4.1.03) já existem no plano de contas, reservadas para o módulo de vendas.
-- Vistorias de entrada/saída com checklist (Fase 6).
+## ADR-42 — Funil com histórico append-only (Fase 5)
+Cada negócio tem uma etapa atual e um histórico imutável (`negocio_etapa_hist`, gatilhos impedem alteração e exclusão). Os indicadores de conversão são calculados desse histórico: um negócio "alcançou" a etapa se esteve nela ou em etapa posterior; tempo médio por etapa vem das permanências encerradas. Etapas automáticas: visita realizada → Visita; proposta → Proposta; contraproposta/aceite → Negociação; venda registrada → Contrato; escritura/conclusão → Concluído; distrato → Perdido. Contrato e Concluído não podem ser marcados manualmente.
+
+## ADR-43 — Propostas versionadas e imutáveis
+Valores, parcelas, financiamento e condições de uma proposta não mudam (gatilho no banco). Contraproposta é nova versão, ligada à anterior, obrigatoriamente da outra parte; a anterior fica "Contraproposta recebida". Só uma proposta em análise por negócio.
+
+## ADR-44 — Venda não é recebimento
+Registrar a venda cria a venda, as partes, a forma de pagamento e os títulos a receber (comissão e valores que transitarão pela imobiliária) — nenhum lançamento no razão. Pagamentos diretos entre comprador e vendedor são apenas informados. Valores pela imobiliária (ex.: sinal) são recurso de terceiros: o título credita "Terceiros a pagar" do vendedor e segue o repasse da Fase 3 (Q25). A comissão pode ser retida do sinal: o mesmo título tem um item de receita própria (3.2.01).
+
+## ADR-45 — Comissão liberada pelo recebido, apurado no razão
+O valor recebido de uma comissão é a soma, no razão, da receita de comissão (3.2.01 dos títulos da venda; 3.1.02 do contrato na locação), limitada ao valor da comissão. A cada recebimento ou estorno, a sincronização ajusta as liberações: parcial → `floor(recebido × % do participante)` (nunca diminui à medida que o recebido cresce); integral → valor exato do rateio (maior resto). Cada liberação gera um título a pagar (`COMISSAO_CORRETOR`, despesa 4.1.03). Estorno cancela liberações ainda não pagas; se a parte já foi paga, o estorno é bloqueado até estornar o pagamento ao corretor. Títulos de venda/comissão não podem ser cancelados ou renegociados fora do módulo.
+
+## ADR-46 — Comissão de locação sobre a intermediação apurada
+Na locação, a comissão é a taxa de intermediação efetivamente cobrada, calculada como na contabilização (aluguel rateado entre locadores e taxa aplicada a cada parte). Por isso só pode ser registrada depois da 1ª cobrança; se o aluguel já foi recebido, a liberação é imediata.
+
+## ADR-47 — Carteira do corretor
+O usuário é ligado à pessoa do corretor (`usuario.pessoa_id`). Sem a permissão `crm.carteira_toda`, leads, negócios, visitas, agenda e comissões ficam restritos aos registros em que ele é o corretor ou que ele cadastrou; ao cadastrar, o corretor é sempre ele mesmo. Leads guardam `id_externo` único por origem para futuras integrações (portais, site, WhatsApp) sem duplicar contatos, e o consentimento de comunicação (LGPD).
+
+## Pendências registradas para a Fase 6
+- Proposta de compra, contrato de intermediação e distrato como documentos gerados por modelos (editor de modelos).
+- Vistorias de entrada/saída com checklist e manutenção.

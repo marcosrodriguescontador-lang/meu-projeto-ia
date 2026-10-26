@@ -10,6 +10,7 @@ import { Abas, Aviso, Botao, CabecalhoPagina, Caixa, Campo, Cartao, Confirmacao,
 import { aplicarErrosServidor, erroDe, resolverZod } from '@/lib/formulario'
 import { dataHora } from '@/lib/formato'
 import { rpc } from '@/lib/rpc'
+import { SeletorPessoa } from '@/features/pessoas/BuscaPessoa'
 
 export function Usuarios() {
   const [aba, setAba] = useState<'usuarios' | 'perfis'>('usuarios')
@@ -111,6 +112,7 @@ function FormUsuario({ usuario, perfis, aoFechar, aoSalvar }: { usuario: Usuario
     resolver: resolverZod(usuario ? usuarioSchema : criarUsuarioSchema),
     defaultValues: { nome: usuario?.nome ?? '', login: usuario?.login ?? '', email: usuario?.email ?? '', perfilId: usuario?.perfilId ?? perfis.find((p) => p.nome === 'Atendimento')?.id ?? perfis[0]!.id, pessoaId: usuario?.pessoaId ?? null, ativo: usuario?.ativo ?? true, senhaInicial: '' }
   })
+  const [pessoa, setPessoa] = useState(usuario?.pessoaId ? { id: usuario.pessoaId, nome: usuario.pessoaNome ?? '' } : null)
   const e = formState.errors
   const enviar = handleSubmit(async (v) => {
     setFalha(null)
@@ -150,6 +152,11 @@ function FormUsuario({ usuario, perfis, aoFechar, aoSalvar }: { usuario: Usuario
           <Campo rotulo="Perfil" obrigatorio>{(id) => <Selecao id={id} opcoes={perfis.map((p) => [String(p.id), p.nome] as [string, string])} {...register('perfilId', { valueAsNumber: true })} />}</Campo>
         </div>
         <Campo rotulo="E-mail" erro={erroDe(e, 'email')}>{(id) => <Entrada id={id} type="email" {...register('email')} />}</Campo>
+        <div>
+          <div className="mb-1 text-xs font-medium text-texto-2">Pessoa vinculada (corretor)</div>
+          <SeletorPessoa valor={pessoa} aoMudar={(p) => (setPessoa(p), setValue('pessoaId', p?.id ?? null))} />
+          <div className="mt-1 text-xs text-texto-3">Para corretores: liga o usuário ao cadastro do corretor, limitando leads, negócios e comissões à própria carteira.</div>
+        </div>
         {!usuario && (
           <Campo rotulo="Senha inicial (temporária)" obrigatorio erro={erroDe(e, 'senhaInicial')} ajuda={`${POLITICA_SENHA} O usuário deverá trocá-la no primeiro acesso.`}>
             {(id) => <Entrada id={id} type="password" autoComplete="new-password" {...register('senhaInicial')} />}

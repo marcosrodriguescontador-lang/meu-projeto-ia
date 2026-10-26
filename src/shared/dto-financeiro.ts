@@ -270,7 +270,10 @@ export interface IndicadoresFinanceiros {
   receitaPropriaMesCentavos: number
   saldoContasCentavos: number
   reajustesPendentes: number
-  /** Últimos 12 meses (regime de caixa): receitas próprias e despesas da imobiliária. */
+  comissoesReceberCentavos: number
+  despesasMesCentavos: number
+  resultadoMesCentavos: number
+  /** Últimos 24 meses (regime de caixa): receitas próprias e despesas da imobiliária. */
   mensal: { competencia: string; receitas: number; despesas: number }[]
 }
 

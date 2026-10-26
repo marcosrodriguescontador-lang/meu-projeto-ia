@@ -8,23 +8,9 @@ import { FORMAS_PAGAMENTO } from '@shared/schemas-locacao'
 import { useSessao } from '@/app/sessao'
 import { Aviso, Botao, Caixa, Campo, Dialogo, Entrada, Selecao, useToast } from '@/components/ui'
 import { CampoMoeda } from '@/features/imoveis/comum'
-import { BuscaPessoa } from '@/features/pessoas/BuscaPessoa'
+import { SeletorPessoa } from '@/features/pessoas/BuscaPessoa'
 import { rpc } from '@/lib/rpc'
 import { invalidarFinanceiro, useContas } from './comum'
-
-/** Pessoa escolhida (com opção de trocar) ou campo de busca. */
-export function SeletorPessoa({ valor, aoMudar }: { valor: { id: number; nome: string } | null; aoMudar: (p: { id: number; nome: string } | null) => void }) {
-  return valor ? (
-    <div className="flex h-9 items-center justify-between rounded-md border border-borda px-3 text-sm">
-      {valor.nome}
-      <button type="button" className="text-xs underline" onClick={() => aoMudar(null)}>
-        trocar
-      </button>
-    </div>
-  ) : (
-    <BuscaPessoa aoSelecionar={(p) => aoMudar({ id: p.id, nome: p.nome })} />
-  )
-}
 
 /** Categoria do plano de contas (receitas ou despesas lançáveis manualmente), com criação rápida. */
 export function SeletorCategoria({ natureza, valor, aoMudar, id }: { natureza: 'RECEITA' | 'DESPESA'; valor: string; aoMudar: (v: string) => void; id?: string }) {

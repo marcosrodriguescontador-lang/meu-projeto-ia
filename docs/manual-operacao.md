@@ -1,4 +1,4 @@
-# Manual básico de operação — Fases 1 a 4
+# Manual básico de operação — Fases 1 a 5
 
 ## Acesso
 - **Entrar:** usuário e senha. Após 5 tentativas inválidas o usuário fica bloqueado por 15 minutos (um administrador pode desbloquear antes em *Usuários e perfis*).
@@ -99,6 +99,30 @@ Realizado (movimentos bancários) nos meses passados e previsto (títulos em abe
 - **Valores a repassar** — por proprietário, com a conferência contra o saldo contábil.
 - **Posição de recursos de terceiros**, **Rentabilidade da administração**, **Extrato do proprietário**.
 - **Base para a DIMOB** — aluguel, comissão e IRRF por locador e mês de pagamento, para conferência e digitação no programa da Receita.
+
+## Comercial: leads, funil, vendas e comissões
+
+### Preparação
+- Cadastre os corretores em **Pessoas** (papel Corretor, com CRECI) e, em **Usuários e perfis**, ligue cada usuário corretor à sua pessoa em **Pessoa vinculada**. Com o perfil Corretor, ele verá apenas a própria carteira.
+- Em **Comissões → Modelo padrão de rateio**, ajuste a divisão sugerida (padrão: imobiliária 50%, captador 20%, vendedor 30%). O captador é o corretor do imóvel; o vendedor, o corretor do negócio.
+
+### Leads
+**Comercial → Leads → Novo lead**: nome, telefone/e-mail, origem do contato, interesse, perfil de busca (tipo, bairros, faixa de valor, dormitórios) e a autorização de comunicações (LGPD). Na página do lead aparecem **sugestões de imóveis** compatíveis com o perfil — marque os de interesse. Registre ligações e retornos em **Histórico de atendimento** e agende visitas. **Abrir negócio** inicia o funil.
+
+### Funil de negócios
+Quadros separados para vendas e locações. Arraste o cartão para mudar a etapa (o histórico fica registrado e alimenta os indicadores). Para marcar como perdido, ative **Mostrar perdidos** e solte na coluna, ou use o botão na página do negócio — o motivo é obrigatório. As etapas avançam sozinhas quando a visita é realizada, a proposta é registrada ou aceita e a venda é registrada.
+
+### Negócio
+- **Visitas**: agende (o sistema impede dois compromissos no mesmo horário para o imóvel ou o corretor) e registre o resultado e o interesse do cliente.
+- **Propostas**: exigem o cliente no cadastro de pessoas. Valores não são editados: negocie por **Contraproposta** (nova versão da outra parte). **Aceitar** coloca o imóvel "em negociação".
+- **Venda** (negócios de venda): informe a forma de pagamento — cada parcela pode ser **direta entre as partes** (só registrada) ou **pela imobiliária** (vira conta a receber do comprador, como recurso de terceiros, e depois repasse ao vendedor). Defina a comissão (%), quem paga e o rateio; é possível **reter a comissão do sinal** pago pela imobiliária. **Registrar a venda não lança recebimento.** Depois: *Aguardando financiamento*, *Escriturada* ou *Concluída* (encerra o negócio como ganho) ou **distrato** (cancela valores ainda não recebidos e devolve o imóvel à venda; a comissão é mantida para decisão).
+- **Locação**: quando o contrato estiver ativo, use **Concluir com contrato**. Após a 1ª cobrança, defina na aba **Comissão** o rateio da taxa de intermediação.
+
+### Comissões
+A parte de cada corretor só vira **conta a pagar** (Contas a pagar, origem "Comissão a pagar") na proporção do que a imobiliária já recebeu da comissão. Estornar um recebimento cancela as liberações ainda não pagas; se o corretor já recebeu, estorne antes o pagamento a ele. A aba **Por corretor** (e o relatório *Comissões por corretor*) mostra previsto, liberado, pago, a pagar e o que aguarda recebimento.
+
+### Agenda e indicadores
+**Agenda** reúne tarefas e visitas do período (atrasadas no topo). **Indicadores** mostra, para negócios abertos no período, quantos alcançaram cada etapa, a conversão para a etapa seguinte, o tempo médio em cada etapa, a taxa de ganho, o ciclo médio, os motivos de perda e o desempenho por origem e por corretor.
 
 ## Usuários e perfis (administrador)
 - **Novo usuário:** nome, login, perfil e senha temporária.
