@@ -22,6 +22,10 @@
   --menu: #0a0a0a;
   --menu-texto: #d6d3d1;
   --menu-ativo: #262626;
+  /* Séries de gráficos (paleta categórica validada para daltonismo e contraste). */
+  --serie-1: #2a78d6;
+  --serie-2: #eb6834;
+  --grade: #eeedeb;
   color-scheme: light;
 }
 
@@ -44,6 +48,9 @@
   --menu: #000000;
   --menu-texto: #a8a29e;
   --menu-ativo: #1c1c1c;
+  --serie-1: #3987e5;
+  --serie-2: #d95926;
+  --grade: #242424;
   color-scheme: dark;
 }
 
@@ -66,6 +73,9 @@
   --color-menu: var(--menu);
   --color-menu-texto: var(--menu-texto);
   --color-menu-ativo: var(--menu-ativo);
+  --color-serie-1: var(--serie-1);
+  --color-serie-2: var(--serie-2);
+  --color-grade: var(--grade);
   --font-sans: 'Inter Variable', 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 

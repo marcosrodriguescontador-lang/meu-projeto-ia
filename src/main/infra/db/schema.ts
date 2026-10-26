@@ -517,6 +517,8 @@ export const contratoLancamento = sqliteTable('contrato_lancamento', {
   valorCentavos: integer('valor_centavos').notNull(),
   pagador: text('pagador', { enum: ['LOCATARIO', 'PROPRIETARIO'] }).notNull(),
   destino: text('destino', { enum: ['PROPRIETARIO', 'TERCEIRO', 'IMOBILIARIA'] }).notNull(),
+  /** IRRF: retenção informada pelo locatário pessoa jurídica (Q18), usada na base da DIMOB. */
+  natureza: text('natureza', { enum: ['OUTRO', 'IRRF'] }).notNull().default('OUTRO'),
   beneficiarioId: integer('beneficiario_id').references(() => pessoa.id, { onDelete: 'restrict' }),
   situacao: text('situacao', { enum: ['PENDENTE', 'INCLUIDO', 'LANCADO', 'CANCELADO'] }).notNull(),
   tituloId: integer('titulo_id'),
@@ -620,7 +622,7 @@ export const tituloItem = sqliteTable(
     descricao: text('descricao').notNull(),
     valorCentavos: integer('valor_centavos').notNull(),
     /** Para quem vai o valor recebido: proprietário(s), terceiro, imobiliária (receita) ou caução (passivo). */
-    destino: text('destino', { enum: ['PROPRIETARIO', 'TERCEIRO', 'IMOBILIARIA', 'CAUCAO', 'PASSIVO'] }).notNull(),
+    destino: text('destino', { enum: ['PROPRIETARIO', 'TERCEIRO', 'IMOBILIARIA', 'CAUCAO', 'PASSIVO', 'DESPESA'] }).notNull(),
     beneficiarioId: integer('beneficiario_id').references(() => pessoa.id, { onDelete: 'restrict' }),
     contaGerencialId: integer('conta_gerencial_id').references(() => contaGerencial.id, { onDelete: 'restrict' }),
     taxaBp: integer('taxa_bp').notNull().default(0),
@@ -768,3 +770,81 @@ export const aluguelVigencia = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.contratoId, t.competencia] })]
 )
+
+// ───────────── Tesouraria: transferências, extratos e conciliação ─────────────
+
+export const transferencia = sqliteTable('transferencia', {
+  id: integer('id').primaryKey(),
+  data: text('data').notNull(),
+  origemId: integer('origem_id')
+    .notNull()
+    .references(() => contaFinanceira.id, { onDelete: 'restrict' }),
+  destinoId: integer('destino_id')
+    .notNull()
+    .references(() => contaFinanceira.id, { onDelete: 'restrict' }),
+  valorCentavos: integer('valor_centavos').notNull(),
+  descricao: text('descricao').notNull(),
+  lancamentoId: integer('lancamento_id').notNull(),
+  estornada: integer('estornada', { mode: 'boolean' }).notNull().default(false),
+  estornoMotivo: text('estorno_motivo'),
+  criadoEm: text('criado_em').notNull(),
+  criadoPor: integer('criado_por')
+})
+
+export const extratoImportacao = sqliteTable(
+  'extrato_importacao',
+  {
+    id: integer('id').primaryKey(),
+    contaFinanceiraId: integer('conta_financeira_id')
+      .notNull()
+      .references(() => contaFinanceira.id, { onDelete: 'restrict' }),
+    arquivo: text('arquivo').notNull(),
+    formato: text('formato', { enum: ['OFX', 'CSV'] }).notNull(),
+    sha256: text('sha256').notNull(),
+    periodoInicio: text('periodo_inicio'),
+    periodoFim: text('periodo_fim'),
+    saldoFinalCentavos: integer('saldo_final_centavos'),
+    dataSaldoFinal: text('data_saldo_final'),
+    linhasLidas: integer('linhas_lidas').notNull(),
+    linhasNovas: integer('linhas_novas').notNull(),
+    importadoEm: text('importado_em').notNull(),
+    importadoPor: integer('importado_por')
+  },
+  (t) => [uniqueIndex('ux_extrato_arquivo').on(t.contaFinanceiraId, t.sha256)]
+)
+
+export const extratoLinha = sqliteTable(
+  'extrato_linha',
+  {
+    id: integer('id').primaryKey(),
+    importacaoId: integer('importacao_id')
+      .notNull()
+      .references(() => extratoImportacao.id, { onDelete: 'restrict' }),
+    contaFinanceiraId: integer('conta_financeira_id')
+      .notNull()
+      .references(() => contaFinanceira.id, { onDelete: 'restrict' }),
+    data: text('data').notNull(),
+    valorCentavos: integer('valor_centavos').notNull(),
+    descricao: text('descricao').notNull(),
+    documento: text('documento'),
+    /** Identificador estável da transação (FITID do OFX ou hash de data/valor/descrição/ocorrência). */
+    chave: text('chave').notNull(),
+    situacao: text('situacao', { enum: ['PENDENTE', 'CONCILIADA', 'IGNORADA'] }).notNull().default('PENDENTE'),
+    motivoIgnorar: text('motivo_ignorar')
+  },
+  (t) => [uniqueIndex('ux_extrato_linha_chave').on(t.contaFinanceiraId, t.chave), index('ix_extrato_linha_conta').on(t.contaFinanceiraId, t.situacao, t.data)]
+)
+
+/** Vínculo 1:1 entre uma linha do extrato e a partida de disponibilidades correspondente. */
+export const conciliacao = sqliteTable('conciliacao', {
+  extratoLinhaId: integer('extrato_linha_id')
+    .primaryKey()
+    .references(() => extratoLinha.id, { onDelete: 'restrict' }),
+  partidaId: integer('partida_id')
+    .notNull()
+    .unique()
+    .references(() => partida.id, { onDelete: 'restrict' }),
+  automatica: integer('automatica', { mode: 'boolean' }).notNull().default(false),
+  conciliadoEm: text('conciliado_em').notNull(),
+  conciliadoPor: integer('conciliado_por')
+})

@@ -31,7 +31,9 @@ import type { Infra } from '../nucleo/contexto'
 import { gerarPdf, lerLogoDataUrl } from './electron-util'
 import type { Metodos } from './roteador'
 
-type MetodosFinanceiros = Pick<Metodos, Extract<keyof Metodos, `financeiro.${string}` | `indices.${string}` | `feriados.${string}` | `contratos.${string}` | `reajustes.${string}` | `cobrancas.${string}` | `titulos.${string}` | `repasses.${string}`>>
+type MetodosFinanceiros = Pick<Metodos, Exclude<Extract<keyof Metodos, `financeiro.${string}` | `indices.${string}` | `feriados.${string}` | `contratos.${string}` | `reajustes.${string}` | `cobrancas.${string}` | `titulos.${string}` | `repasses.${string}`>, 'titulos.criarManual'>>
+
+export { janela, salvarPdf }
 
 const janela = () => BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]!
 

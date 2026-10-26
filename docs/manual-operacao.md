@@ -1,4 +1,4 @@
-# Manual básico de operação — Fases 1 a 3
+# Manual básico de operação — Fases 1 a 4
 
 ## Acesso
 - **Entrar:** usuário e senha. Após 5 tentativas inválidas o usuário fica bloqueado por 15 minutos (um administrador pode desbloquear antes em *Usuários e perfis*).
@@ -66,6 +66,7 @@ No cadastro da pessoa, a aba **Imóveis** lista os imóveis de que ela é propri
 ### Lançamentos avulsos (aba do contrato)
 - **Cobrança ao locatário**: entra na próxima cobrança (ex.: 2ª via de chave). Valor negativo = crédito ao locatário por conta do proprietário (ex.: abatimento de pintura).
 - **Débito ao proprietário**: descontado imediatamente do saldo a repassar (ex.: conserto pago pela imobiliária).
+- **IRRF retido pelo locatário** (locatário pessoa jurídica): marque a opção e informe o valor negativo. Abate do aluguel do proprietário e aparece na base da DIMOB.
 
 ### Correções
 - **Estornar** uma baixa (ícone na lista de baixas do título) desfaz caixa, saldos e receitas; fica tudo no histórico.
@@ -73,6 +74,31 @@ No cadastro da pessoa, a aba **Imóveis** lista os imóveis de que ela é propri
 
 ### Rescisão
 Aba **Rescisão** do contrato: informe a entrega das chaves e veja a memória de cálculo (aluguel proporcional, multa proporcional ao prazo restante, caução a devolver). Ao confirmar (digitando RESCINDIR), o sistema gera a cobrança proporcional, o título da rescisão e a devolução da caução, e libera o imóvel para locação.
+
+## Tesouraria, conciliação e relatórios
+
+### Despesas e receitas da imobiliária
+- **Contas a pagar → Nova despesa** (ou **Contas a receber → Nova receita própria**): escolha favorecido/pagador, categoria do plano de contas (o botão **+** cria uma categoria nova), valor e competência. À vista ou parcelado (até 120 parcelas mensais, sem perder centavos). Se já foi paga/recebida, marque a opção e informe data, conta e forma.
+- Aluguéis, taxas de administração, intermediação e multas são lançados automaticamente pelas locações — não use estas telas para eles.
+
+### Transferências entre contas
+**Contas bancárias → Transferir entre contas.** O quadro *Separação de recursos* mostra quanto das contas de terceiros já pertence à imobiliária (taxas e receitas apuradas); somente esse valor pode ser levado para a conta própria. Se aparecer falta de recursos de terceiros, verifique despesas próprias pagas pela conta de terceiros. Transferências podem ser estornadas na página da conta (aba *Transferências*), com motivo.
+
+### Importar extrato e conciliar
+1. **Contas bancárias** → clique na conta → **Importar extrato (OFX/CSV)**. OFX é lido diretamente; no CSV, indique na prévia as colunas de data, descrição e valor (ou débito/crédito).
+2. O mesmo arquivo não é aceito duas vezes, e transações já importadas por outro arquivo são ignoradas. Após importar, o sistema concilia automaticamente os pares inequívocos (mesmo valor, até 3 dias).
+3. Na aba **Conciliação**, para cada linha pendente: **Aceitar** a sugestão, **escolher** o movimento manualmente (ícone de corrente), **lançar no sistema** o que só existe no banco (tarifas, rendimentos — vira despesa/receita já quitada) ou **ignorar** com motivo. Tudo pode ser desfeito.
+4. O indicador **Diferença na data do extrato** deve ficar em **R$ 0,00**: significa que o saldo do sistema bate com o saldo informado pelo banco.
+
+### Fluxo de caixa
+Realizado (movimentos bancários) nos meses passados e previsto (títulos em aberto) nos próximos; vencidos não pagos entram no mês atual. Filtre por contas próprias, de terceiros ou todas. Transferências dentro do mesmo grupo não contam como entrada/saída.
+
+### Relatórios
+**Financeiro → Relatórios**: escolha o relatório, ajuste os parâmetros e confira a prévia; **PDF** e **Excel** exportam exatamente o que está na tela (a exportação fica registrada na auditoria). Destaques:
+- **Resultado gerencial mensal** — receitas próprias menos despesas, regime de caixa ou competência. Aluguéis e valores de terceiros nunca entram.
+- **Valores a repassar** — por proprietário, com a conferência contra o saldo contábil.
+- **Posição de recursos de terceiros**, **Rentabilidade da administração**, **Extrato do proprietário**.
+- **Base para a DIMOB** — aluguel, comissão e IRRF por locador e mês de pagamento, para conferência e digitação no programa da Receita.
 
 ## Usuários e perfis (administrador)
 - **Novo usuário:** nome, login, perfil e senha temporária.

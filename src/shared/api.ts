@@ -3,6 +3,8 @@ import type * as D from './dto'
 import type * as S from './schemas'
 import type * as F from './dto-financeiro'
 import type * as L from './schemas-locacao'
+import type * as R from './relatorios'
+import type { MapaCsv } from './financeiro/extratos'
 
 type P<T> = T
 
@@ -125,6 +127,29 @@ export interface ContratoApi {
   'repasses.cancelar': [{ id: number; motivo: string }, void]
   'repasses.demonstrativo': [{ id: number }, { repasse: F.RepasseDto; linhas: F.ExtratoLinha[] }]
   'repasses.demonstrativoPdf': [{ id: number }, boolean]
+
+  'categorias.listar': [{ natureza?: 'RECEITA' | 'DESPESA'; manuais?: boolean }, F.CategoriaDto[]]
+  'categorias.criar': [L.CategoriaInput, F.CategoriaDto]
+  'titulos.criarManual': [L.TituloManualInput, { titulos: number[] }]
+  'tesouraria.transferir': [L.TransferenciaInput, { id: number }]
+  'tesouraria.estornarTransferencia': [{ id: number; motivo: string }, void]
+  'tesouraria.transferencias': [void, F.TransferenciaDto[]]
+  'tesouraria.movimentos': [{ contaId: number; de?: string; ate?: string }, { saldoAnterior: number; movimentos: F.MovimentoDto[] }]
+  'tesouraria.posicaoTerceiros': [void, F.PosicaoTerceiros]
+  'extratos.escolherArquivo': [void, { token: string; nome: string; formato: 'OFX' | 'CSV'; previa: { separador: string; linhas: string[][] } | null } | null]
+  'extratos.importar': [{ contaId: number; token: string; mapaCsv?: MapaCsv | null }, F.ResultadoImportacao]
+  'extratos.linhas': [{ contaId: number; situacao?: string }, F.LinhaExtratoDto[]]
+  'extratos.resumo': [{ contaId: number }, F.ResumoConciliacao]
+  'conciliacao.pendentes': [{ contaId: number }, F.MovimentoPendente[]]
+  'conciliacao.sugestoes': [{ contaId: number }, F.Sugestao[]]
+  'conciliacao.conciliar': [{ contaId: number; linhaId: number; partidaId: number }, void]
+  'conciliacao.automatica': [{ contaId: number }, number]
+  'conciliacao.desfazer': [{ linhaId: number }, void]
+  'conciliacao.ignorar': [{ linhaId: number; motivo: string }, void]
+  'conciliacao.lancar': [{ linhaId: number; categoriaId: number; pessoaId: number; descricao: string }, void]
+  'relatorios.gerar': [{ codigo: R.CodigoRelatorio; parametros: R.ParametrosRelatorio }, R.RelatorioDados]
+  'relatorios.exportar': [{ codigo: R.CodigoRelatorio; parametros: R.ParametrosRelatorio; formato: 'PDF' | 'XLSX' }, boolean]
+  'relatorios.fluxoCaixa': [{ mesesAnteriores?: number; mesesFuturos?: number; titularidade?: 'TODAS' | 'PROPRIO' | 'TERCEIROS' }, R.PontoFluxo[]]
 
   'auditoria.listar': [
     { entidade?: string; usuario?: string; de?: string; ate?: string; busca?: string; pagina?: number; porPagina?: number },

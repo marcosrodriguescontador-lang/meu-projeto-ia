@@ -113,6 +113,7 @@ export interface LancamentoAvulsoDto {
   valorCentavos: number
   pagador: 'LOCATARIO' | 'PROPRIETARIO'
   destino: string
+  natureza: 'OUTRO' | 'IRRF'
   beneficiarioNome: string | null
   situacao: string
   tituloId: number | null
@@ -269,6 +270,8 @@ export interface IndicadoresFinanceiros {
   receitaPropriaMesCentavos: number
   saldoContasCentavos: number
   reajustesPendentes: number
+  /** Últimos 12 meses (regime de caixa): receitas próprias e despesas da imobiliária. */
+  mensal: { competencia: string; receitas: number; despesas: number }[]
 }
 
 export interface MemoriaRescisao {
@@ -280,4 +283,93 @@ export interface MemoriaRescisao {
   competenciaFinal: string
   saldoCaucaoCentavos: number
   titulosEmAberto: number
+}
+
+// ——— Fase 4: tesouraria e conciliação ———
+
+export interface CategoriaDto {
+  id: number
+  codigo: string
+  nome: string
+  natureza: 'RECEITA' | 'DESPESA'
+  sistema: boolean
+}
+
+export interface TransferenciaDto {
+  id: number
+  data: string
+  origemId: number
+  destinoId: number
+  origem: string
+  destino: string
+  valorCentavos: number
+  descricao: string
+  estornada: boolean
+}
+
+export interface MovimentoDto {
+  partidaId: number
+  lancamentoId: number
+  data: string
+  historico: string
+  valorCentavos: number
+  saldoCentavos: number
+  conciliado: boolean
+  estornado: boolean
+}
+
+export interface PosicaoTerceiros {
+  saldoContasTerceiros: number
+  saldoContasProprias: number
+  passivoProprietarios: number
+  passivoTerceiros: number
+  passivoCaucoes: number
+  totalPassivo: number
+  /** Positivo: dinheiro da imobiliária ainda em contas de terceiros. Negativo: recursos de terceiros fora das contas de terceiros. */
+  recursosPropriosEmContasDeTerceiros: number
+}
+
+export interface ResultadoImportacao {
+  importacaoId: number
+  lidas: number
+  novas: number
+  duplicadas: number
+  conciliadasAutomaticamente: number
+}
+
+export interface LinhaExtratoDto {
+  id: number
+  data: string
+  valorCentavos: number
+  descricao: string
+  documento: string | null
+  situacao: 'PENDENTE' | 'CONCILIADA' | 'IGNORADA'
+  motivoIgnorar: string | null
+  partidaId: number | null
+  historicoSistema: string | null
+  automatica: boolean
+}
+
+export interface MovimentoPendente {
+  partidaId: number
+  data: string
+  historico: string
+  valorCentavos: number
+}
+
+export interface Sugestao {
+  linhaId: number
+  partidaId: number
+  diasDiferenca: number
+  unica: boolean
+}
+
+export interface ResumoConciliacao {
+  saldoSistemaCentavos: number
+  ultimoExtrato: { arquivo: string; data: string | null; saldoCentavos: number | null } | null
+  saldoSistemaNaDataCentavos: number | null
+  diferencaCentavos: number | null
+  linhasPendentes: number
+  movimentosPendentes: number
+  importacoes: { id: number; arquivo: string; formato: string; periodo: string; lidas: number; novas: number; importadoEm: string }[]
 }

@@ -93,7 +93,7 @@ export function rescindir(infra: Infra, ator: Ator, entrada: RescisaoInput): { t
     // Avulsos ainda pendentes (competências futuras) entram no título da rescisão.
     const pendentes = infra.db.select().from(contratoLancamento).where(and(eq(contratoLancamento.contratoId, c.id), eq(contratoLancamento.situacao, 'PENDENTE'), eq(contratoLancamento.pagador, 'LOCATARIO'))).all()
     for (const a of pendentes)
-      extras.push({ tipo: a.valorCentavos < 0 ? 'CREDITO' : 'AVULSO', descricao: a.descricao, valor: a.valorCentavos, destino: a.destino, beneficiarioId: a.beneficiarioId, contaGerencialId: a.destino === 'IMOBILIARIA' ? idConta(infra, CONTAS.RECEITA_OUTRAS) : null, lancamentoAvulsoId: a.id })
+      extras.push({ tipo: a.natureza === 'IRRF' ? 'IRRF' : a.valorCentavos < 0 ? 'CREDITO' : 'AVULSO', descricao: a.descricao, valor: a.valorCentavos, destino: a.destino, beneficiarioId: a.beneficiarioId, contaGerencialId: a.destino === 'IMOBILIARIA' ? idConta(infra, CONTAS.RECEITA_OUTRAS) : null, lancamentoAvulsoId: a.id })
 
     const multa = d.cobrarMulta ? sim.multaCalculadaCentavos : 0
     if (multa > 0) extras.push({ tipo: 'MULTA_RESCISORIA', descricao: `Multa rescisória proporcional (${sim.memoria})`.slice(0, 300), valor: multa, destino: 'PROPRIETARIO' })

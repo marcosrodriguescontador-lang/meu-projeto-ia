@@ -61,7 +61,7 @@ export function montarCobranca(infra: Infra, c: Contrato, competencia: string, d
     .all()
   for (const a of avulsos)
     itens.push({
-      tipo: a.valorCentavos < 0 ? 'CREDITO' : 'AVULSO',
+      tipo: a.natureza === 'IRRF' ? 'IRRF' : a.valorCentavos < 0 ? 'CREDITO' : 'AVULSO',
       descricao: a.descricao,
       valor: a.valorCentavos,
       destino: a.destino,

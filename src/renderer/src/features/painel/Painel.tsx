@@ -4,6 +4,8 @@ import { formatarMoeda } from '@shared/dinheiro'
 import { Link } from 'react-router-dom'
 import { PAPEIS, type Papel } from '@shared/schemas'
 import { useSessao } from '@/app/sessao'
+import { GraficoColunas } from '@/components/Graficos'
+import { formatarCompetencia } from '@shared/financeiro/datas'
 import { Aviso, Botao, CabecalhoPagina, Cartao, Indicador } from '@/components/ui'
 import { dataHora } from '@/lib/formato'
 import { rpc } from '@/lib/rpc'
@@ -56,6 +58,20 @@ export function Painel() {
           <Indicador rotulo="Saldo em contas" valor={formatarMoeda(data.financeiro.saldoContasCentavos)} detalhe="Próprias + terceiros" />
         </div>
       )}
+      {data?.financeiro && (
+        <Cartao titulo="Receitas próprias e despesas da imobiliária — últimos 12 meses" className="mb-4">
+          <GraficoColunas
+            titulo="Receitas próprias e despesas — últimos 12 meses"
+            categorias={data.financeiro.mensal.map((m) => formatarCompetencia(m.competencia).replace(/\/\d{2}(\d{2})$/, '/$1'))}
+            series={[
+              { nome: 'Receitas próprias', cor: 1, valores: data.financeiro.mensal.map((m) => m.receitas) },
+              { nome: 'Despesas', cor: 2, valores: data.financeiro.mensal.map((m) => m.despesas) }
+            ]}
+            formatar={formatarMoeda}
+          />
+          <div className="mt-2 text-xs text-texto-3">Regime de caixa. Aluguéis recebidos não são receita da imobiliária: entram apenas as taxas, comissões e demais receitas próprias.</div>
+        </Cartao>
+      )}
       {data?.imoveis && (
         <div className="mb-4 grid grid-cols-4 gap-4">
           <Indicador rotulo="Imóveis cadastrados" valor={data.imoveis.total} icone={<Building2 className="size-4" />} />
@@ -95,7 +111,6 @@ export function Painel() {
         </Cartao>
         <Cartao titulo="Próximas etapas">
           <ul className="space-y-2 text-sm text-texto-2">
-            <li>Saldo, receitas e resultado — Fase 4</li>
             <li>Comissões e funil — Fase 5</li>
           </ul>
           <div className="mt-3 text-xs text-texto-3">Cada indicador aparece aqui quando o módulo correspondente tiver dados reais.</div>

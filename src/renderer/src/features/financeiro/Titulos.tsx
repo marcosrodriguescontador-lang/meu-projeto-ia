@@ -1,26 +1,37 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { Search } from 'lucide-react'
+import { Plus, Search } from 'lucide-react'
 import { useState } from 'react'
 import { formatarMoeda } from '@shared/dinheiro'
 import { formatarCompetencia, formatarData } from '@shared/financeiro/datas'
 import { ORIGENS_TITULO } from '@shared/schemas-locacao'
-import { CabecalhoPagina, Cartao, Entrada, Paginacao, Selecao, Tabela } from '@/components/ui'
+import { useSessao } from '@/app/sessao'
+import { Botao, CabecalhoPagina, Cartao, Entrada, Paginacao, Selecao, Tabela } from '@/components/ui'
 import { rpc } from '@/lib/rpc'
 import { DialogoTitulo, rotuloOrigem, SeloTitulo } from './comum'
+import { DialogoNovoTitulo } from './NovoTitulo'
 
 /** Contas a receber e a pagar (mesma tela, sentido diferente). */
 export function Titulos({ sentido }: { sentido: 'RECEBER' | 'PAGAR' }) {
   const [f, setF] = useState({ busca: '', situacao: 'EM_ABERTO', origem: '', vencimentoDe: '', vencimentoAte: '', pagina: 1 })
+  const { pode } = useSessao()
   const [aberto, setAberto] = useState<number | null>(null)
+  const [novo, setNovo] = useState(false)
   const mudar = (p: Partial<typeof f>) => setF((x) => ({ ...x, ...p, pagina: p.pagina ?? 1 }))
   const entrada = { sentido, situacao: f.situacao || undefined, origem: f.origem || undefined, busca: f.busca || undefined, vencimentoDe: f.vencimentoDe || undefined, vencimentoAte: f.vencimentoAte || undefined, pagina: f.pagina }
   const { data, isLoading } = useQuery({ queryKey: ['titulos', entrada], queryFn: () => rpc('titulos.listar', entrada), placeholderData: keepPreviousData })
-  const origens = Object.entries(ORIGENS_TITULO).filter(([k]) => (sentido === 'RECEBER' ? ['COBRANCA_LOCACAO', 'CAUCAO', 'RESCISAO', 'RENEGOCIACAO'] : ['REPASSE', 'PAGAMENTO_TERCEIRO', 'DEVOLUCAO_CAUCAO']).includes(k))
+  const origens = Object.entries(ORIGENS_TITULO).filter(([k]) => (sentido === 'RECEBER' ? ['COBRANCA_LOCACAO', 'CAUCAO', 'RESCISAO', 'RENEGOCIACAO', 'RECEITA_PROPRIA'] : ['REPASSE', 'PAGAMENTO_TERCEIRO', 'DEVOLUCAO_CAUCAO', 'DESPESA']).includes(k))
   return (
     <>
       <CabecalhoPagina
         titulo={sentido === 'RECEBER' ? 'Contas a receber' : 'Contas a pagar'}
-        subtitulo={sentido === 'RECEBER' ? 'Cobranças emitidas. A baixa só ocorre com o registro do recebimento.' : 'Repasses a proprietários, pagamentos a terceiros e devoluções de caução.'}
+        subtitulo={sentido === 'RECEBER' ? 'Cobranças emitidas. A baixa só ocorre com o registro do recebimento.' : 'Repasses a proprietários, pagamentos a terceiros, devoluções de caução e despesas da imobiliária.'}
+        acoes={
+          pode(sentido === 'PAGAR' ? 'financeiro.pagar' : 'financeiro.receber') && (
+            <Botao variante="primario" icone={<Plus className="size-4" />} onClick={() => setNovo(true)}>
+              {sentido === 'PAGAR' ? 'Nova despesa' : 'Nova receita própria'}
+            </Botao>
+          )
+        }
       />
       <Cartao semPadding>
         <div className="grid grid-cols-6 gap-3 border-b border-borda p-4">
@@ -64,6 +75,7 @@ export function Titulos({ sentido }: { sentido: 'RECEBER' | 'PAGAR' }) {
         )}
         {data && <Paginacao pagina={f.pagina} porPagina={100} total={data.total} aoMudar={(p) => mudar({ pagina: p })} />}
       </Cartao>
+      {novo && <DialogoNovoTitulo sentido={sentido} aoFechar={() => setNovo(false)} />}
       {aberto !== null && <DialogoTitulo id={aberto} aoFechar={() => setAberto(null)} />}
     </>
   )

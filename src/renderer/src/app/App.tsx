@@ -20,7 +20,10 @@ import { FormContrato } from '@/features/locacoes/FormContrato'
 import { ListaContratos } from '@/features/locacoes/ListaContratos'
 import { Reajustes } from '@/features/locacoes/Reajustes'
 import { Cobrancas } from '@/features/financeiro/Cobrancas'
+import { ContaDetalhe } from '@/features/financeiro/ContaDetalhe'
 import { Contas } from '@/features/financeiro/Contas'
+import { FluxoCaixa } from '@/features/financeiro/FluxoCaixa'
+import { Relatorios } from '@/features/financeiro/Relatorios'
 import { Inadimplencia } from '@/features/financeiro/Inadimplencia'
 import { Indices } from '@/features/financeiro/Indices'
 import { Repasses } from '@/features/financeiro/Repasses'
@@ -77,6 +80,9 @@ export function App() {
             <Route path="financeiro/inadimplencia" element={<Protegida permissao="financeiro.ver"><Inadimplencia /></Protegida>} />
             <Route path="financeiro/repasses" element={<Protegida permissao="financeiro.ver"><Repasses /></Protegida>} />
             <Route path="financeiro/contas" element={<Protegida permissao="financeiro.ver"><Contas /></Protegida>} />
+            <Route path="financeiro/contas/:id" element={<Protegida permissao="financeiro.ver"><ContaDetalhe /></Protegida>} />
+            <Route path="financeiro/fluxo" element={<Protegida permissao="financeiro.ver"><FluxoCaixa /></Protegida>} />
+            <Route path="financeiro/relatorios" element={<Protegida permissao="financeiro.ver"><Relatorios /></Protegida>} />
             <Route path="financeiro/indices" element={<Indices />} />
             <Route path="usuarios" element={<Protegida permissao="usuarios.ver"><Usuarios /></Protegida>} />
             <Route path="auditoria" element={<Protegida permissao="auditoria.ver"><Auditoria /></Protegida>} />

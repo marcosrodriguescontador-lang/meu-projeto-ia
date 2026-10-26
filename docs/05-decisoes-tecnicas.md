@@ -83,6 +83,27 @@ Competência = mês de uso; vencimento no dia contratual do **mês seguinte** (a
 ## ADR-34 — Repasse por marcação de partidas
 Gerar repasse marca (`repasse_id`) todas as partidas pendentes do favorecido e cria um título a pagar com o saldo exato. Isso torna o demonstrativo reprodutível. Regras: estorno de recebimento incluído em repasse **não pago** exige cancelar o repasse; após o pagamento, o estorno gera saldo devedor compensado nos próximos créditos. Pagamentos são recusados se a conta não tiver saldo.
 
-## Pendências registradas para a Fase 4
-- Transferência entre contas (ex.: mover a taxa da conta de terceiros para a conta própria), conciliação bancária e importação OFX/CSV.
-- Vistorias de entrada/saída com checklist (previstas para a Fase 6).
+## ADR-35 — Transferências e separação de recursos (Fase 4)
+Transferência é um lançamento único em *Disponibilidades* (débito no destino, crédito na origem), sem título. Da conta de terceiros para a própria, o valor fica limitado ao que já pertence à imobiliária: `saldo das contas de terceiros − (proprietários a repassar + terceiros a pagar + cauções)`. Estorno por lançamento inverso, com motivo. A tela *Contas bancárias* mostra essa posição permanentemente.
+
+## ADR-36 — Antiduplicidade de extratos
+Duas barreiras: (1) o SHA-256 do arquivo é único por conta — o mesmo arquivo é recusado; (2) cada transação tem chave única por conta — `FITID` do OFX quando existe; senão hash de data + valor + descrição + documento com contador de ocorrência (duas tarifas idênticas no mesmo dia continuam sendo duas). Arquivos com períodos sobrepostos importam só as transações novas. Valores e datas das linhas importadas são imutáveis (gatilho) e linhas não podem ser excluídas.
+
+## ADR-37 — Conciliação 1:1 sem alterar valores
+Cada linha do extrato concilia com exatamente uma partida de *Disponibilidades* da mesma conta, com o mesmo valor (sinal incluído). Sugestões: mesmo valor e até 5 dias de diferença, pela menor distância; a conciliação automática só aceita par único com até 3 dias. Pares lançamento/estorno não conciliados deixam de aparecer como pendência. Movimento que só existe no banco (tarifa, rendimento) é lançado a partir da linha como título manual já quitado. Ignorar exige motivo; tudo é auditado e pode ser desfeito.
+
+## ADR-38 — Contas a pagar/receber gerais e plano de contas
+Despesas e receitas próprias usam o mesmo modelo de títulos (origens `DESPESA` e `RECEITA_PROPRIA`, recurso próprio) com item de destino `DESPESA`/`IMOBILIARIA` apontando para a categoria. Parcelamento por rateio exato (centavos na 1ª parcela). As receitas geradas pelas locações (3.1.01–3.1.03) não aceitam lançamento manual. Categorias novas do usuário recebem códigos 3.9.NN / 4.8.NN.
+
+## ADR-39 — Relatórios com estrutura única
+Todo relatório produz `RelatorioDados` (colunas tipadas, linhas, totais, observações); a mesma estrutura alimenta a prévia na tela, o PDF (janela oculta + `printToPDF`) e o Excel (ExcelJS, valores numéricos com formato R$). O resultado gerencial é por regime de caixa (padrão) ou competência do título. "Valores a repassar" traz a conferência com o saldo contábil de *Proprietários a repassar*.
+
+## ADR-40 — DIMOB como base de conferência
+O sistema não gera o arquivo oficial da Receita: entrega a base por contrato × locador × mês de pagamento (aluguel, comissão e IRRF), rateada pela participação dos locadores da mesma forma que o lançamento contábil. IRRF retido por locatário PJ é informado como lançamento avulso de natureza `IRRF` (valor negativo, do locatário ao proprietário).
+
+## ADR-41 — Gráficos em SVG próprio
+Os gráficos (painel e fluxo de caixa) são componentes SVG sem dependência externa: colunas com ponta arredondada, linha de 2 px, dica ao passar o mouse e no foco do teclado, legenda e tabela equivalente. Paleta de duas séries validada para daltonismo e contraste nos temas claro e escuro; previsto em hachura empilhada sobre o realizado.
+
+## Pendências registradas para a Fase 5
+- Comissões de venda (3.2.01) e de corretores (4.1.03) já existem no plano de contas, reservadas para o módulo de vendas.
+- Vistorias de entrada/saída com checklist (Fase 6).

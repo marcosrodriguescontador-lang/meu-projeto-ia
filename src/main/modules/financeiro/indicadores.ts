@@ -1,5 +1,5 @@
 import type { IndicadoresFinanceiros } from '@shared/dto-financeiro'
-import { adicionarDias, competenciaDe, hojeIso, primeiroDia, ultimoDia } from '@shared/financeiro/datas'
+import { adicionarDias, adicionarMeses, competenciaDe, hojeIso, primeiroDia, ultimoDia } from '@shared/financeiro/datas'
 import type { Infra } from '../../nucleo/contexto'
 import { listarContasFinanceiras } from './cadastros'
 import { CONTAS, idConta } from './razao'
@@ -33,7 +33,23 @@ export function indicadoresFinanceiros(infra: Infra): IndicadoresFinanceiros {
     primeiroDia(mes),
     ultimoDia(mes)
   )
+  const inicio = adicionarMeses(mes, -11)
+  const porMes = infra.bruto
+    .prepare(
+      `SELECT substr(l.data, 1, 7) competencia,
+         coalesce(sum(CASE WHEN cg.codigo LIKE '3.%' THEN p.credito_centavos - p.debito_centavos END), 0) receitas,
+         coalesce(sum(CASE WHEN cg.codigo LIKE '4.%' THEN p.debito_centavos - p.credito_centavos END), 0) despesas
+       FROM partida p JOIN lancamento l ON l.id = p.lancamento_id JOIN conta_gerencial cg ON cg.id = p.conta_gerencial_id
+       WHERE (cg.codigo LIKE '3.%' OR cg.codigo LIKE '4.%') AND l.data BETWEEN ? AND ? GROUP BY 1`
+    )
+    .all(primeiroDia(inicio), ultimoDia(mes)) as { competencia: string; receitas: number; despesas: number }[]
+  const mensal = Array.from({ length: 12 }, (_, i) => {
+    const c = adicionarMeses(inicio, i)
+    const r = porMes.find((x) => x.competencia === c)
+    return { competencia: c, receitas: r?.receitas ?? 0, despesas: r?.despesas ?? 0 }
+  })
   return {
+    mensal,
     contratosAtivos: contratos.ativos,
     contratosVencendo60: contratos.vencendo,
     receberMesCentavos: receber.s,

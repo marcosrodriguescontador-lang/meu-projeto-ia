@@ -24,6 +24,7 @@ import { gerarFichaHtml } from '../modules/imoveis/ficha'
 import { lerLogoDataUrl, gerarPdf } from './electron-util'
 import type { Metodos } from './roteador'
 import { criarMetodosFinanceiros } from './metodos-financeiro'
+import { criarMetodosTesouraria } from './metodos-tesouraria'
 
 export interface DependenciasMetodos {
   versaoApp: string
@@ -283,6 +284,7 @@ export function criarMetodos(dep: DependenciasMetodos): Metodos {
 
     'painel.indicadores': { executar: ({ infra, ator }) => indicadoresPainel(infra, ator) },
 
-    ...criarMetodosFinanceiros(dep.dirMarca)
+    ...criarMetodosFinanceiros(dep.dirMarca),
+    ...criarMetodosTesouraria(dep.dirMarca)
   }
 }

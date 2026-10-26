@@ -56,7 +56,7 @@ export function AbaLancamentos({ contrato }: { contrato: ContratoDetalhe }) {
   const { data, isLoading } = useQuery({ queryKey: ['lancamentos', contrato.id], queryFn: () => rpc('contratos.lancamentos', { id: contrato.id }) })
   const [novo, setNovo] = useState(false)
   const [cancelar, setCancelar] = useState<number | null>(null)
-  const [f, setF] = useState({ pagador: 'LOCATARIO' as 'LOCATARIO' | 'PROPRIETARIO', destino: 'IMOBILIARIA' as keyof typeof DESTINOS_ITEM, descricao: '', valor: '', competencia: adicionarMeses(competenciaDe(hojeIso()), 0), beneficiarioId: null as number | null, beneficiario: '' })
+  const [f, setF] = useState({ pagador: 'LOCATARIO' as 'LOCATARIO' | 'PROPRIETARIO', destino: 'IMOBILIARIA' as keyof typeof DESTINOS_ITEM, descricao: '', valor: '', competencia: adicionarMeses(competenciaDe(hojeIso()), 0), beneficiarioId: null as number | null, beneficiario: '', irrf: false })
   const [falha, setFalha] = useState<string | null>(null)
   const ativo = contrato.situacao === 'ATIVO'
   return (
@@ -82,7 +82,9 @@ export function AbaLancamentos({ contrato }: { contrato: ContratoDetalhe }) {
         {data?.map((l) => (
           <tr key={l.id}>
             <td>{formatarCompetencia(l.competencia)}</td>
-            <td>{l.descricao}</td>
+            <td>
+              {l.descricao} {l.natureza === 'IRRF' && <Selo>IRRF</Selo>}
+            </td>
             <td>{l.pagador === 'LOCATARIO' ? 'Locatário' : 'Proprietário'}</td>
             <td className="text-texto-2">
               {DESTINOS_ITEM[l.destino as keyof typeof DESTINOS_ITEM]}
@@ -116,7 +118,7 @@ export function AbaLancamentos({ contrato }: { contrato: ContratoDetalhe }) {
               onClick={async () => {
                 setFalha(null)
                 try {
-                  await rpc('contratos.criarLancamento', { contratoId: contrato.id, competencia: f.competencia, descricao: f.descricao, valor: f.valor, pagador: f.pagador, destino: f.destino, beneficiarioId: f.beneficiarioId })
+                  await rpc('contratos.criarLancamento', { contratoId: contrato.id, competencia: f.competencia, descricao: f.descricao, valor: f.valor, pagador: f.pagador, destino: f.irrf ? 'PROPRIETARIO' : f.destino, beneficiarioId: f.beneficiarioId, natureza: f.irrf ? 'IRRF' : 'OUTRO' })
                   toast.sucesso('Lançamento registrado.')
                   void qc.invalidateQueries({ queryKey: ['lancamentos', contrato.id] })
                   invalidarFinanceiro(qc)
@@ -139,12 +141,12 @@ export function AbaLancamentos({ contrato }: { contrato: ContratoDetalhe }) {
                 id={i}
                 opcoes={{ LOCATARIO: 'Locatário (na próxima cobrança)', PROPRIETARIO: 'Proprietário (débito no repasse)' }}
                 value={f.pagador}
-                onChange={(e) => setF({ ...f, pagador: e.target.value as 'LOCATARIO', destino: e.target.value === 'PROPRIETARIO' ? 'IMOBILIARIA' : f.destino })}
+                onChange={(e) => setF({ ...f, irrf: false, pagador: e.target.value as 'LOCATARIO', destino: e.target.value === 'PROPRIETARIO' ? 'IMOBILIARIA' : f.destino })}
               />
             )}
           </Campo>
           <Campo rotulo="Valor vai para">
-            {(i) => <Selecao id={i} opcoes={f.pagador === 'PROPRIETARIO' ? { IMOBILIARIA: DESTINOS_ITEM.IMOBILIARIA, TERCEIRO: DESTINOS_ITEM.TERCEIRO } : DESTINOS_ITEM} value={f.destino} onChange={(e) => setF({ ...f, destino: e.target.value as 'IMOBILIARIA' })} />}
+            {(i) => <Selecao id={i} disabled={f.irrf} opcoes={f.pagador === 'PROPRIETARIO' ? { IMOBILIARIA: DESTINOS_ITEM.IMOBILIARIA, TERCEIRO: DESTINOS_ITEM.TERCEIRO } : DESTINOS_ITEM} value={f.destino} onChange={(e) => setF({ ...f, destino: e.target.value as 'IMOBILIARIA' })} />}
           </Campo>
           {f.destino === 'TERCEIRO' && (
             <div className="col-span-2">
@@ -164,6 +166,16 @@ export function AbaLancamentos({ contrato }: { contrato: ContratoDetalhe }) {
           <Campo rotulo="Descrição" className="col-span-2">{(i) => <Entrada id={i} value={f.descricao} onChange={(e) => setF({ ...f, descricao: e.target.value })} />}</Campo>
           <Campo rotulo="Valor" ajuda={f.pagador === 'LOCATARIO' ? 'Use "-" para crédito ao locatário' : undefined}>{(i) => <Entrada id={i} className="numeros text-right" value={f.valor} onChange={(e) => setF({ ...f, valor: e.target.value })} />}</Campo>
           <Campo rotulo="Competência">{(i) => <Entrada id={i} type="month" value={f.competencia} onChange={(e) => setF({ ...f, competencia: e.target.value })} />}</Campo>
+          {f.pagador === 'LOCATARIO' && (
+            <div className="col-span-2">
+              <Caixa
+                rotulo="IRRF retido pelo locatário"
+                descricao='Locatário pessoa jurídica que retém o imposto: informe o valor negativo (ex.: "-150,00"). Abate do aluguel do proprietário e entra na base da DIMOB.'
+                checked={f.irrf}
+                onChange={(e) => setF({ ...f, irrf: e.target.checked, destino: e.target.checked ? 'PROPRIETARIO' : f.destino, descricao: e.target.checked && !f.descricao ? 'IRRF retido na fonte' : f.descricao })}
+              />
+            </div>
+          )}
           {falha && (
             <div className="col-span-2">
               <Aviso tom="perigo">{falha}</Aviso>

@@ -8,7 +8,7 @@ import { baixa, contaFinanceira, contratoLancamento, titulo, tituloItem, usuario
 import { agoraIso, exigir, type Ator, type Infra } from '../../nucleo/contexto'
 import { auditar, type Autor } from '../seguranca/auditoria'
 
-export type DestinoItem = 'PROPRIETARIO' | 'TERCEIRO' | 'IMOBILIARIA' | 'CAUCAO' | 'PASSIVO'
+export type DestinoItem = 'PROPRIETARIO' | 'TERCEIRO' | 'IMOBILIARIA' | 'CAUCAO' | 'PASSIVO' | 'DESPESA'
 
 export interface ItemNovo {
   tipo: string

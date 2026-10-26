@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Building2, CalendarCheck, ChevronLeft, Percent, Send, TrendingUp, ClipboardList, FileSignature, Gauge, HardDriveDownload, Handshake, KeyRound, Landmark, Lock, LogOut, Moon, Settings, ShieldCheck, Sun, Users, Wrench, UserCog } from 'lucide-react'
+import { AlertTriangle, ChartLine, FileBarChart, ArrowDownToLine, ArrowUpFromLine, Building2, CalendarCheck, ChevronLeft, Percent, Send, TrendingUp, ClipboardList, FileSignature, Gauge, HardDriveDownload, Handshake, KeyRound, Landmark, Lock, LogOut, Moon, Settings, ShieldCheck, Sun, Users, Wrench, UserCog } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { LimiteErro } from '@/components/LimiteErro'
@@ -45,6 +45,8 @@ const GRUPOS: { titulo: string; itens: ItemMenu[] }[] = [
       { rota: '/financeiro/repasses', rotulo: 'Repasses', icone: <Send />, permissao: 'financeiro.ver' },
       { rota: '/financeiro/pagar', rotulo: 'Contas a pagar', icone: <ArrowUpFromLine />, permissao: 'financeiro.ver' },
       { rota: '/financeiro/contas', rotulo: 'Contas bancárias', icone: <Landmark />, permissao: 'financeiro.ver' },
+      { rota: '/financeiro/fluxo', rotulo: 'Fluxo de caixa', icone: <ChartLine />, permissao: 'financeiro.ver' },
+      { rota: '/financeiro/relatorios', rotulo: 'Relatórios', icone: <FileBarChart />, permissao: 'financeiro.ver' },
       { rota: '/financeiro/indices', rotulo: 'Índices e feriados', icone: <Percent /> }
     ]
   },

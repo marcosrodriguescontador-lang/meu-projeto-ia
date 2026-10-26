@@ -50,6 +50,20 @@
       "when": 1792970769128,
       "tag": "0006_aluguel_vigencia",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1792977524144,
+      "tag": "0007_tesouraria",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1792977524975,
+      "tag": "0008_plano_contas_ampliado",
+      "breakpoints": true
     }
   ]
 }

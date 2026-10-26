@@ -450,6 +450,7 @@ export function listarLancamentos(infra: Infra, ator: Ator, contratoId: number):
       valorCentavos: contratoLancamento.valorCentavos,
       pagador: contratoLancamento.pagador,
       destino: contratoLancamento.destino,
+      natureza: contratoLancamento.natureza,
       beneficiarioNome: pessoa.nome,
       situacao: contratoLancamento.situacao,
       tituloId: contratoLancamento.tituloId,
@@ -475,7 +476,7 @@ export function criarLancamento(infra: Infra, ator: Ator, entrada: LancamentoAvu
     if (d.beneficiarioId) pessoaAtiva(infra, d.beneficiarioId)
     const { id } = infra.db
       .insert(contratoLancamento)
-      .values({ ...d, valorCentavos: d.valor, situacao: d.pagador === 'LOCATARIO' ? 'PENDENTE' : 'LANCADO', criadoPor: ator.id, atualizadoPor: ator.id })
+      .values({ ...d, natureza: d.natureza, valorCentavos: d.valor, situacao: d.pagador === 'LOCATARIO' ? 'PENDENTE' : 'LANCADO', criadoPor: ator.id, atualizadoPor: ator.id })
       .returning({ id: contratoLancamento.id })
       .get()
     if (d.pagador === 'PROPRIETARIO') {

@@ -24,7 +24,9 @@ export const ORIGENS_TITULO = {
   RENEGOCIACAO: 'Renegociação',
   REPASSE: 'Repasse ao proprietário',
   PAGAMENTO_TERCEIRO: 'Pagamento a terceiro',
-  DEVOLUCAO_CAUCAO: 'Devolução de caução'
+  DEVOLUCAO_CAUCAO: 'Devolução de caução',
+  DESPESA: 'Despesa da imobiliária',
+  RECEITA_PROPRIA: 'Receita própria'
 } as const
 
 const competencia = z.string().refine(validarCompetencia, 'Competência inválida (AAAA-MM)')
@@ -110,9 +112,12 @@ export const lancamentoAvulsoSchema = z
     }),
     pagador: z.enum(['LOCATARIO', 'PROPRIETARIO']),
     destino: z.enum(chaves(DESTINOS_ITEM)),
-    beneficiarioId: id.nullish().transform((v) => v ?? null)
+    beneficiarioId: id.nullish().transform((v) => v ?? null),
+    natureza: z.enum(['OUTRO', 'IRRF']).default('OUTRO')
   })
   .superRefine((l, ctx) => {
+    if (l.natureza === 'IRRF' && !(l.pagador === 'LOCATARIO' && l.destino === 'PROPRIETARIO' && l.valor < 0))
+      ctx.addIssue({ code: 'custom', path: ['valor'], message: 'IRRF retido: informe valor negativo (abatimento do locatário, por conta do proprietário)' })
     if (l.destino === 'TERCEIRO' && !l.beneficiarioId) ctx.addIssue({ code: 'custom', path: ['beneficiarioId'], message: 'Informe o beneficiário' })
     if (l.valor === 0) ctx.addIssue({ code: 'custom', path: ['valor'], message: 'Valor não pode ser zero' })
     if (l.valor < 0 && !(l.pagador === 'LOCATARIO' && l.destino === 'PROPRIETARIO'))
@@ -211,3 +216,40 @@ export type RenegociacaoInput = z.input<typeof renegociacaoSchema>
 export type RescisaoInput = z.input<typeof rescisaoSchema>
 export type AditivoInput = z.input<typeof aditivoSchema>
 export type IndiceValorInput = z.input<typeof indiceValorSchema>
+
+// ───────────── Fase 4: financeiro geral ─────────────
+
+export const tituloManualSchema = z
+  .object({
+    sentido: z.enum(['RECEBER', 'PAGAR']),
+    pessoaId: id,
+    categoriaId: id,
+    descricao: obrigatorio(200),
+    valor: moeda(true),
+    parcelas: z.union([z.string(), z.number()]).transform((v, ctx) => {
+      const n = Number(v)
+      if (!Number.isInteger(n) || n < 1 || n > 120) ctx.addIssue({ code: 'custom', message: 'Entre 1 e 120 parcelas' })
+      return n
+    }),
+    primeiroVencimento: dataIso,
+    competencia: z.string().refine(validarCompetencia, 'Competência inválida'),
+    documento: opcional(60),
+    quitado: z.boolean(),
+    contaFinanceiraId: id.nullish().transform((v) => v ?? null),
+    forma: z.enum(chaves(FORMAS_PAGAMENTO)).nullish().transform((v) => v ?? null),
+    dataQuitacao: dataIso.nullish().or(z.literal('')).transform((v) => v || null)
+  })
+  .superRefine((t, ctx) => {
+    if (t.quitado && (!t.contaFinanceiraId || !t.forma || !t.dataQuitacao)) ctx.addIssue({ code: 'custom', path: ['contaFinanceiraId'], message: 'Informe conta, forma e data da quitação' })
+    if (t.quitado && t.parcelas > 1) ctx.addIssue({ code: 'custom', path: ['parcelas'], message: 'Lançamento já quitado deve ser à vista' })
+  })
+
+export const transferenciaSchema = z
+  .object({ origemId: id, destinoId: id, valor: moeda(true), data: dataIso, descricao: obrigatorio(200) })
+  .refine((t) => t.origemId !== t.destinoId, { path: ['destinoId'], message: 'Escolha contas diferentes' })
+
+export const categoriaSchema = z.object({ natureza: z.enum(['RECEITA', 'DESPESA']), nome: obrigatorio(120) })
+
+export type TituloManualInput = z.input<typeof tituloManualSchema>
+export type TransferenciaInput = z.input<typeof transferenciaSchema>
+export type CategoriaInput = z.input<typeof categoriaSchema>

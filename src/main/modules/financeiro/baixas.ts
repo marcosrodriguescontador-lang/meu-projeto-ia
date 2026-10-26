@@ -165,7 +165,11 @@ export function pagar(infra: Infra, ator: Ator, entrada: BaixaPagarInput): Resul
     const partidas: PartidaNova[] = [{ conta: CONTAS.DISPONIBILIDADES, valor: -valor, historico: `Pagamento — ${t.descricao}`, contaFinanceiraId: conta.id, contratoId: t.contratoId, tituloId: t.id }]
     itens.forEach((item, k) => {
       if (!alocado[k]) return
-      if (item.destino !== 'PASSIVO') throw new Error('Título a pagar com item sem conta de passivo')
+      if (item.destino === 'DESPESA') {
+        partidas.push({ conta: codigoConta(infra, item.conta_gerencial_id, '4.9.99'), valor: alocado[k]!, historico: `${item.descricao} — ${t.descricao}`, pessoaId: t.pessoaId, contratoId: t.contratoId, tituloId: t.id })
+        return
+      }
+      if (item.destino !== 'PASSIVO') throw new Error('Título a pagar com item sem conta de passivo ou despesa')
       partidas.push({
         conta: codigoConta(infra, item.conta_gerencial_id, CONTAS.TERCEIROS),
         valor: alocado[k]!,
