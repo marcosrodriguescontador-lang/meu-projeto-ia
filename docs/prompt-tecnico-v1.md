@@ -1,8 +1,13 @@
 # Prompt técnico — Escrituração e gestão financeira do produtor rural PF (v1)
 
 > Versão 1 do prompt técnico para orientar o desenvolvimento do aplicativo.
-> Os itens marcados como **[confirmar]** dependem de verificação no leiaute oficial
-> do LCDPR ou na legislação do ano-calendário e não devem ser fixados no código.
+> Os itens marcados como **[confirmar]** dependem de verificação na legislação do
+> ano-calendário e não devem ser fixados no código.
+>
+> Referências do LCDPR neste repositório:
+> - [`lcdpr/leiaute-1.3.md`](lcdpr/leiaute-1.3.md) — regras do manual relevantes para o desenvolvimento;
+> - [`lcdpr/leiaute-1.3.json`](lcdpr/leiaute-1.3.json) — definição campo a campo, gerada da planilha oficial;
+> - [`lcdpr/referencias/`](lcdpr/referencias/) — planilha do leiaute 1.3 e manual de preenchimento (ADE COPES nº 1/2020).
 
 ---
 
@@ -100,9 +105,11 @@ Todas as tabelas de `dados.db` pertencem a um único produtor.
 | Entidade | Campos principais |
 |----------|-------------------|
 | `produtor` (catálogo) | id, CPF, nome, endereço completo, código IBGE do município, CEP, telefone, e-mail, situação especial e data, forma de apuração, contador responsável (nome, CPF/CNPJ, CRC, e-mail, telefone) |
-| `imovel_rural` | id, código LCDPR (3 dígitos) **[confirmar]**, país, moeda, CIB/NIRF (CAD_ITR), CAEPF, inscrição estadual, nome, endereço, UF, município IBGE, CEP, tipo de exploração, percentual de participação, vigência |
-| `terceiro_imovel` | imóvel, tipo de contraparte, CPF/CNPJ, nome, percentual (base do registro 0045) |
-| `conta_bancaria` | id, código LCDPR, país, código do banco, nome do banco, agência, número, tipo (corrente, poupança, investimento, caixa/espécie), imóvel padrão, saldo de abertura e data |
+| `imovel_rural` | id, país (BR), moeda (BRL), CAFIR com DV (CAD_ITR, 8 dígitos), CAEPF (14), inscrição estadual (somente dígitos), nome (até 50), endereço, número, complemento, bairro/distrito, UF, município IBGE, CEP |
+| `exploracao_imovel` | imóvel, **código LCDPR (3 dígitos, sequencial)**, tipo de exploração (1 individual, 2 condomínio, 3 arrendado, 4 parceria, 5 comodato, 6 outros), percentual de participação do produtor, início e fim de vigência. Cada mudança de exploração ou de percentual no ano gera um novo período com código próprio (um registro 0040 por período) |
+| `terceiro_exploracao` | período de exploração, tipo de contraparte (1 condômino, 2 arrendador, 3 parceiro, 4 comodante, 5 outros), CPF/CNPJ, nome (até 50), percentual (base do 0045) |
+| `conta_bancaria` | id, código LCDPR (3 dígitos; `000` e `999` reservados), país, código de compensação do banco (3), nome do banco (até 30), agência (4, sem DV), número com DV (até 16), tipo (corrente, poupança, investimento), imóvel padrão, saldo de abertura e data |
+| `conta_especial` | contas fixas do sistema, não cadastráveis: **Espécie** (LCDPR `000`) e **Numerário em trânsito** (LCDPR `999`: valores que não passaram por conta do produtor, como financiamento pago direto ao fornecedor, conta de outro condômino ou permuta) |
 | `participante` | CPF/CNPJ, nome, tipo (cliente, fornecedor, ambos), UF, validação de dígito |
 | `documento` | tipo (NF-e venda, NF-e compra, NFP-e, nota avulsa, recibo, contrato, fatura, folha, outro), número, série, chave de acesso, emissão, participante, imóvel, valor bruto, origem (`xml`, `pdf`, `imagem`, `manual`), status (`pendente_revisao`, `confirmado`, `cancelado`), arquivo original |
 | `documento_item` | produto/serviço, CFOP, NCM, quantidade, unidade, valor |
@@ -112,7 +119,7 @@ Todas as tabelas de `dados.db` pertencem a um único produtor.
 | `movimento_bancario` | conta, data, valor (com sinal), histórico do banco, documento do banco (FITID/nº), hash de deduplicação, origem, status de conciliação, justificativa de pendência |
 | `conciliacao` | movimento, tipo de vínculo, observação, usuário, data |
 | `conciliacao_item` | conciliação, documento (opcional), valor alocado |
-| `lancamento` | data, conta, imóvel, documento, participante, tipo (receita, despesa, receita de adiantamento, não operacional), categoria, histórico, valor, origem (movimento bancário), indicador `entra_no_lcdpr`, status |
+| `lancamento` | data do recurso, conta (ou `000`/`999`), período de exploração do imóvel (ou `000` para despesa comum de condomínio/parceria), documento (número como no original e tipo LCDPR: 1 NF, 2 fatura, 3 recibo, 4 contrato, 5 folha, 6 outros), participante, tipo (1 receita da atividade, 2 despesa de custeio e investimento, 3 receita de produto entregue referente a adiantamento, ou não operacional), categoria, histórico, valor total da operação, percentual do produtor, **valor da cota do produtor**, origem (movimento bancário), indicador `entra_no_lcdpr`, status |
 | `categoria` | plano de categorias financeiras configurável, com natureza (receita da atividade, despesa de custeio, investimento, financeira, patrimonial, neutra) |
 | `aliquota_vigencia` | tipo de retenção, alíquota, início e fim de vigência, base legal (texto), regra de aplicação (ex.: venda a PJ adquirente) |
 | `periodo_fechamento` | ano, mês, status, usuário, data |
@@ -122,8 +129,10 @@ Todas as tabelas de `dados.db` pertencem a um único produtor.
 
 ### 5.1 Produtores, imóveis e contas
 
-- CRUD de produtor, imóvel rural, terceiros do imóvel e conta bancária, com validação de CPF/CNPJ, CEP, UF e código IBGE (tabela de municípios embarcada).
-- Conta do tipo **caixa/espécie** para movimentos em dinheiro, tratada como conta própria.
+- CRUD de produtor, imóvel rural, períodos de exploração, terceiros e conta bancária, com validação de CPF/CNPJ, CEP, UF e código IBGE (tabelas do SPED de países, UF e municípios embarcadas) e dos tamanhos do leiaute.
+- Ao cadastrar exploração com participação menor que 100% ou tipo diferente de "individual", exigir os terceiros (0045) e conferir se a soma dos percentuais fecha em 100%.
+- O CAEPF é exigido na exploração individual e, na coletiva, quando o produtor for o primeiro titular ou o representante.
+- As contas especiais **Espécie (000)** e **Numerário em trânsito (999)** existem em todo produtor, não aparecem no 0050 e não têm extrato bancário.
 - Tela inicial exige produtor selecionado; troca de produtor fecha telas abertas do anterior.
 
 ### 5.2 Importação de documentos
@@ -173,8 +182,14 @@ Regras:
 
 - Gerados a partir da conciliação (movimento + documento + classificação) ou manualmente.
 - Cada lançamento indica se **entra no LCDPR** (receita/despesa da atividade rural) ou é apenas financeiro (aplicação, resgate, rendimento, empréstimo, transferência, retirada).
-- Rateio entre imóveis quando aplicável.
-- Lançamento sem movimento bancário (ex.: pagamento em espécie) exige conta caixa e documento.
+- **Rateio entre imóveis**: atribuir ao imóvel principal ou ratear (uso direto ou critério indireto configurável). Despesa comum de condomínio/parceria que abrange vários imóveis pode usar o código `000`, com o condomínio/parceria identificado no histórico.
+- **Exploração coletiva**: o valor que vai ao LCDPR é a cota do produtor (`valor × participação`). O app guarda o total e a cota e monta o histórico com a composição (ex.: "Venda 1.000 sc milho — total R$ 100.000,00, cota 50%").
+- O imóvel do lançamento é resolvido pelo **período de exploração vigente na data**.
+- Lançamento sem movimento bancário exige conta `000` (espécie) ou `999` (numerário em trânsito), documento e justificativa.
+- **Participante** conforme o manual:
+  - folha de pagamento: CPF de cada trabalhador ou, pelo total, o CPF do produtor;
+  - tributos: CPF/CNPJ do sujeito passivo;
+  - importação/exportação direta: CPF do produtor, com o número da DI/DE (ou da NF no Mercosul) como documento.
 
 ### 5.6 Retenções e FUNRURAL
 
@@ -183,7 +198,7 @@ Regras:
 - Cálculo é **sugestão** editável; quando o valor editado diverge do calculado, registrar o motivo.
 - Uso na escrituração só após status `conferida`.
 - Não aplicar retenção por padrão: o usuário marca se a operação tem retenção (ex.: venda a adquirente PJ) ou se o produtor recolhe diretamente, conforme a documentação.
-- O tratamento da retenção no LCDPR e nos relatórios segue configuração explícita do usuário por produtor/ano, com orientação na tela. **[confirmar com o leiaute e as regras vigentes]**
+- O tratamento da retenção no LCDPR e nos relatórios segue configuração explícita do usuário por produtor/ano, com orientação na tela. **[confirmar: o manual do LCDPR 1.3 não trata de retenções]**
 
 ## 6. Relatórios financeiros
 
@@ -215,48 +230,66 @@ Rastreabilidade: na tela, clicar em qualquer total abre a lista de lançamentos;
 
 ### 7.1 Leiaute versionado
 
-- O leiaute 1.3 é a **referência estrutural inicial**. Cada leiaute é descrito em arquivo de definição (JSON/YAML) com registros, campos, ordem, tipo, tamanho, obrigatoriedade, domínio de valores e regras.
-- Antes de gerar, o usuário escolhe o ano-calendário e o sistema mostra qual leiaute está associado; se não houver leiaute cadastrado/confirmado para aquele ano, a geração fica **bloqueada** com aviso para verificar o leiaute oficial publicado pela Receita Federal.
-- Novos leiautes são importados como arquivo, sem nova versão do app.
+- O **leiaute 1.3** (ADE COPES nº 1/2020, válido a partir do ano-calendário de 2019) é a versão inicial. Sua definição está em [`lcdpr/leiaute-1.3.json`](lcdpr/leiaute-1.3.json), gerada da planilha oficial, com registros, campos, ordem, tipo, tamanho, decimais, domínios e obrigatoriedade. O gerador e o validador leem esse arquivo; nenhum formato fica espalhado no código.
+- Antes de gerar, o usuário escolhe o ano-calendário e o sistema mostra o leiaute associado. Se o usuário não tiver confirmado que aquele leiaute vale para o ano (a RFB pode publicar versão posterior), a geração fica **bloqueada** com aviso para verificar o leiaute oficial.
+- Novos leiautes são importados como arquivo de definição, sem nova versão do app.
 
-### 7.2 Registros (referência leiaute 1.3 — **[confirmar campos e formatos no leiaute oficial]**)
+### 7.2 Estrutura do arquivo (leiaute 1.3)
+
+Formato confirmado no manual:
+
+- texto UTF-8, uma linha por registro, iniciada pelo código do registro (sem `|` no início);
+- `|` após cada campo, exceto o último;
+- linhas terminadas em CR LF;
+- datas `ddmmaaaa`, meses `mmaaaa`;
+- valores sem separadores, com 2 casas decimais fixas (R$ 1.255,42 → `125542`; zero → `000`);
+- CPF, CNPJ, CEP e códigos com todos os dígitos e zeros à esquerda;
+- número do documento como no original;
+- texto sem `|` e sem caracteres de controle, até 255 caracteres quando não houver outro limite.
 
 | Registro | Conteúdo | Ocorrência |
 |----------|----------|------------|
-| `0000` | Abertura: nome do arquivo (LCDPR), versão do leiaute, CPF e nome do produtor, indicador de situação no início do período, situação especial e data, data inicial e final | 1 |
-| `0010` | Parâmetros de tributação (forma de apuração) | 1 |
-| `0030` | Dados cadastrais (endereço, município, CEP, telefone, e-mail) | 1 |
-| `0040` | Imóveis rurais (código, CAD_ITR, CAEPF, IE, endereço, tipo de exploração, participação) | 1:N |
-| `0045` | Terceiros do imóvel (condôminos, arrendantes, parceiros etc.) | quando o tipo de exploração exigir |
-| `0050` | Contas bancárias (código, país, banco, agência, conta) | 1:N |
-| `Q100` | Demonstrativo do resultado: data, imóvel, conta, nº e tipo do documento, histórico, participante, tipo de lançamento, entrada, saída, saldo final e natureza do saldo | 0:N |
-| `Q200` | Resumo mensal: mês, entradas, saídas, saldo e natureza | 12 (ou meses do período) |
-| `9999` | Identificação do contador e encerramento (quantidade de linhas) | 1 |
+| `0000` | `LCDPR`, versão `0013`, CPF, nome, indicador de início do período (0 regular, 1 abertura, 2 início de obrigatoriedade), situação especial (0 normal, 1 falecimento, 2 espólio, 3 saída definitiva) e data, data inicial e final | 1 |
+| `0010` | Forma de apuração: 1 Livro Caixa; 2 20% da receita bruta (art. 5º da Lei 8.023/1990) | 1 |
+| `0030` | Endereço, número, complemento, bairro, UF, município IBGE, CEP, telefone, e-mail | 1 |
+| `0040` | Um registro por **período de exploração** do imóvel: código, país, moeda, CAFIR, CAEPF, IE, nome, endereço, UF, município, CEP, tipo de exploração, participação | 1:N |
+| `0045` | Terceiros, **logo após o seu 0040**: tipo de contraparte, CPF/CNPJ, nome, percentual | obrigatório se participação < 100% ou exploração ≠ individual |
+| `0050` | Contas: código, país, banco, nome do banco, agência sem DV, conta com DV | 1:N |
+| `Q100` | Data, imóvel, conta (`000` espécie, `999` numerário em trânsito), nº e tipo do documento, histórico, participante, tipo de lançamento, entrada, saída, saldo, natureza (`P`/`N`) | 1:N |
+| `Q200` | Resumo mensal: mês, entradas, saídas, saldo acumulado, natureza | 1 por mês com lançamento |
+| `9999` | Nome, CPF/CNPJ, CRC, e-mail e telefone do contador; total de linhas do arquivo (inclusive a do 9999) | 1 |
 
-Formatos (separador, codificação, formato de data, casas decimais e separador decimal, quebra de linha) vêm da definição do leiaute, nunca de constantes espalhadas no código.
+**Saldo do Q100 não é saldo bancário.** `SLD_FIN` é o resultado acumulado do livro (receitas − despesas), começa em zero em 1º de janeiro e o último Q100 traz o resultado do ano. Por isso, aplicações, resgates, rendimentos financeiros, empréstimos, transferências e retiradas não entram no Q100. Saldo zero usa natureza `P`.
 
 ### 7.3 Validações antes da exportação
 
 Bloqueantes:
 
-- campos obrigatórios preenchidos; domínios de códigos válidos; datas dentro do período;
-- CPF/CNPJ válidos para produtor, participantes e terceiros;
-- todo `Q100` referencia imóvel (`0040`) e conta (`0050`) existentes;
-- `0045` presente quando o tipo de exploração exigir e soma de percentuais coerente;
-- saldo acumulado do `Q100` recalculado e igual ao informado; `Q200` igual à soma mensal do `Q100`;
-- nenhum lançamento `pendente_revisao` ou retenção não conferida incluída;
-- quantidade de linhas no `9999` correta.
+- campos obrigatórios e obrigatórios condicionais (ex.: CAFIR e UF/município/CEP quando o país é BR; CAEPF conforme a exploração; `DT_SIT_ESP` quando há situação especial);
+- tamanho exato dos códigos, tamanhos máximos dos textos e domínios de valores, conforme a definição do leiaute;
+- datas dentro de `DT_INI`–`DT_FIN`, com `DT_INI` = 1º de janeiro quando `IND_SIT_INI_PER` = 0;
+- CPF/CNPJ com dígito verificador válido para produtor, participantes, terceiros e contador;
+- todo `Q100` aponta um `0040` cuja exploração está vigente na data (ou `000`) e uma conta do `0050` (ou `000`/`999`);
+- `0045` presente quando exigido, e percentuais do produtor e dos terceiros somando 100%;
+- códigos `000` e `999` ausentes do `0050`; códigos de imóvel e conta únicos;
+- saldo do `Q100` recalculado em ordem cronológica e igual ao gerado; `Q200` = soma mensal do `Q100`, com saldo acumulado igual ao do último `Q100` do mês;
+- cada `Q100` com entrada ou saída (nunca as duas), e coerente com o tipo de lançamento;
+- nenhum lançamento `pendente_revisao` ou retenção não conferida;
+- `QTD_LIN` igual ao número real de linhas.
 
-Alertas (não bloqueiam, mas exigem ciência): movimentos não conciliados no período, documentos sem vínculo, participantes sem nome, lançamentos sem documento.
+Alertas (não bloqueiam, mas exigem ciência): movimentos não conciliados no período, documentos sem vínculo, lançamentos em `999` sem justificativa, histórico genérico, participante igual ao produtor fora dos casos previstos (folha, importação/exportação), lançamentos de exploração coletiva sem composição no histórico.
 
 ### 7.4 Fluxo
 
 1. Selecionar produtor e ano-calendário.
-2. **Verificação de obrigatoriedade**: compara a receita bruta da atividade rural do ano com o limite configurado para aquele ano-calendário (tabela editável com fonte normativa). Resultado: *obrigado*, *não obrigado* ou *indeterminado*; o usuário pode gerar mesmo se não obrigado (entrega facultativa). **[confirmar limite vigente para cada ano]**
+2. **Verificação de obrigatoriedade**: compara a receita bruta **total** da atividade rural do ano, somando todas as unidades exploradas, com o limite configurado para aquele ano-calendário. O limite fica numa tabela editável com a fonte normativa (IN SRF 83/2001, alterada pelas IN RFB 1.848/2018 e 1.903/2019). Resultado: *obrigado*, *não obrigado* ou *indeterminado*. Abaixo do limite, a entrega é facultativa e o usuário pode gerar o arquivo. **[confirmar o limite vigente para cada ano]**
 3. **Prévia** dos lançamentos que irão ao `Q100`, com filtros e totais mensais, permitindo corrigir e reclassificar.
 4. Painel de validações com link direto para o item a corrigir.
 5. Geração do `.txt` e de relatórios de conferência (PDF/Excel) com os mesmos totais.
 6. Registro da geração (hash do arquivo, data, usuário, leiaute) no histórico; arquivo salvo em `exportacoes\`.
+7. Orientação final: o arquivo deve ser validado, assinado com certificado ICP-Brasil e transmitido no programa oficial da RFB, até o prazo da DIRPF do ano-calendário.
+
+Não entram no arquivo: atividade rural no exterior (informada direto na DIRPF) e compensação de prejuízo de anos anteriores (feita na DIRPF).
 
 ## 8. Interface
 
@@ -291,7 +324,12 @@ Testes automatizados obrigatórios:
 - conciliação N:N, venda pelo líquido, transferência própria, pendência justificada;
 - deduplicação de extratos importados duas vezes;
 - relatórios: soma do detalhe = total exibido;
-- gerador LCDPR: arquivo de exemplo conferido campo a campo com a definição do leiaute, saldos e `Q200` consistentes, contagem do `9999`;
+- gerador LCDPR:
+  - reproduzir os exemplos do manual (`0000`, `0010`, `0030`, `0040`, `0045`, `0050`, `Q100`, `9999`) byte a byte, inclusive o CR LF;
+  - formatação de valores conforme a tabela de exemplos do manual (`1.129.998,99` → `112999899`, `18,5%` → `01850`, `0,010` → `001`);
+  - saldo do `Q100` partindo de zero, `Q200` cumulativo e `QTD_LIN` correto;
+  - mudança de exploração no meio do ano gerando dois `0040` e os `Q100` apontando o código vigente;
+  - exploração em condomínio com lançamento pela cota e `0045` logo após o `0040`;
 - backup → restauração → mesmo conteúdo (hash dos registros).
 
 Critérios de aceite da v1:
@@ -303,7 +341,8 @@ Critérios de aceite da v1:
 5. Transferências próprias não aparecem como receita nem despesa.
 6. Todo total de relatório abre seus lançamentos e documentos.
 7. O LCDPR não é exportado com validação bloqueante pendente.
-8. O app funciona com a rede desconectada.
+8. Aplicações, resgates, rendimentos financeiros, empréstimos e transferências próprias não aparecem no `Q100`.
+9. O app funciona com a rede desconectada.
 
 ## 11. Entregas por fase
 
@@ -320,17 +359,22 @@ Cada fase termina com testes passando, instalador gerado e notas de versão.
 
 ## 12. Fora do escopo da v1
 
-- Transmissão do LCDPR (a entrega é feita pelo programa oficial da Receita Federal).
+- Assinatura digital e transmissão do LCDPR (feitas no programa oficial da Receita Federal).
 - Integração bancária on-line (Open Finance) e consulta on-line de NF-e.
 - Escrituração contábil por partidas dobradas, folha de pagamento e emissão de nota fiscal.
 - Apuração do IRPF/Atividade Rural (pode ser fase futura).
 
 ## 13. Pontos a confirmar
 
-1. Leiaute oficial do LCDPR aplicável a cada ano-calendário (o leiaute 1.3 citado como anexo não está neste repositório).
-2. Limite de receita bruta que torna a entrega obrigatória em cada ano-calendário.
-3. Formato numérico, de data e de codificação dos campos no leiaute vigente.
-4. Tratamento das retenções (FUNRURAL/SENAR/RAT) no `Q100`: valor bruto da nota ou valor efetivamente recebido, e como evidenciar a diferença.
-5. Tratamento de adiantamentos de recursos (tipo de lançamento específico no `Q100`).
-6. Tabela de categorias padrão a ser entregue com o app.
-7. Necessidade de multiusuário em rede local ou apenas monousuário por máquina.
+Já confirmados pelo leiaute 1.3 e pelo manual (ver [`lcdpr/leiaute-1.3.md`](lcdpr/leiaute-1.3.md)): registros, campos, tamanhos, domínios, formato do arquivo, códigos `000`/`999`, regras de exploração coletiva e de participante.
+
+Ainda em aberto:
+
+1. **Leiaute por ano-calendário**: o 1.3 vale a partir de 2019; conferir, para cada ano escriturado, se a RFB publicou versão posterior.
+2. **Limite de obrigatoriedade** por ano-calendário: o manual não traz o valor.
+3. **Codificação**: o manual diz "ASCII UTF-8". Gerar em UTF-8 sem BOM e validar no programa oficial com nomes acentuados.
+4. **Divergências do próprio material oficial**: ocorrência do `Q100`/`Q200`, zero como `0` ou `000`, espaços no exemplo do `Q200`. A decisão proposta está em `lcdpr/leiaute-1.3.md`, seção 5, e deve ser confirmada no validador oficial.
+5. **Retenções (FUNRURAL/SENAR/RAT) no `Q100`**: lançar o bruto da nota ou o valor recebido, e como evidenciar a diferença. O manual não trata do tema.
+6. **Adiantamentos**: o manual prevê o tipo 3 para a receita de produtos entregues referente a adiantamento, mas não detalha o lançamento do recebimento do adiantamento em si.
+7. Tabela de categorias padrão a ser entregue com o app.
+8. Necessidade de multiusuário em rede local ou apenas monousuário por máquina.

@@ -1,0 +1,977 @@
+{
+  "leiaute": "1.3",
+  "cod_ver": "0013",
+  "fonte": "Leiaute LCDPR 1.3 e Manual de Preenchimento (Anexo ao ADE COPES nº 1/2020)",
+  "vigencia": {
+    "ano_calendario_inicial": 2019,
+    "ano_calendario_final": null,
+    "observacao": "Confirmar a cada ano-calendário se a RFB publicou leiaute posterior."
+  },
+  "formato_arquivo": {
+    "codificacao": "UTF-8",
+    "delimitador": "|",
+    "delimitador_no_inicio_da_linha": false,
+    "delimitador_apos_ultimo_campo": false,
+    "fim_de_linha": "\r\n",
+    "data": "ddmmaaaa",
+    "periodo": "mmaaaa",
+    "numerico_decimal": "sem separador decimal ou de milhar, casas decimais fixas, sem sinal",
+    "zero_com_2_decimais": "000",
+    "alfanumerico_tamanho_maximo_padrao": 255,
+    "caracteres_proibidos_em_texto": "| e ASCII 0-31"
+  },
+  "codigos_especiais": {
+    "Q100.COD_CONTA": {
+      "000": "pagamento/recebimento em espécie",
+      "999": "numerário em trânsito"
+    },
+    "Q100.COD_IMOVEL": {
+      "000": "despesa comum de condomínio/parceria que abrange vários imóveis (identificar no HIST)"
+    }
+  },
+  "ordem_registros": [
+    "0000",
+    "0010",
+    "0030",
+    "0040",
+    "0045",
+    "0050",
+    "Q100",
+    "Q200",
+    "9999"
+  ],
+  "registros": [
+    {
+      "registro": "0000",
+      "nivel": 1,
+      "nome": "Abertura do arquivo digital e identificação da pessoa física",
+      "obrigatoriedade": "O",
+      "ocorrencia": "[1;1]",
+      "campos": [
+        {
+          "n": 1,
+          "campo": "REG",
+          "descricao": "Texto fixo contendo a identificação do registro (0000).",
+          "tipo": "C",
+          "tamanho": 4,
+          "decimais": null,
+          "valores_validos": [
+            "0000"
+          ],
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 2,
+          "campo": "NOME_ESC",
+          "descricao": "Texto fixo contendo a identificação do tipo de arquivo (LCDPR).",
+          "tipo": "C",
+          "tamanho": 5,
+          "decimais": null,
+          "valores_validos": [
+            "LCDPR"
+          ],
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 3,
+          "campo": "COD_VER",
+          "descricao": "Código da versão do leiaute.",
+          "tipo": "C",
+          "tamanho": 4,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 4,
+          "campo": "CPF",
+          "descricao": "Preencher este campo com o número de inscrição no Cadastro Nacional da Pessoa Física (CPF) do declarante.",
+          "tipo": "N",
+          "tamanho": 11,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 5,
+          "campo": "NOME",
+          "descricao": "Nome da pessoa física.",
+          "tipo": "C",
+          "tamanho": null,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 6,
+          "campo": "IND_SIT_INI_PER",
+          "descricao": "Indicador do Início do Período: 0 – Regular (Início no primeiro dia do ano). 1 – Abertura (Início de atividades no ano-calendário). 2 – Início de obrigatoriedade da escrituração no curso do ano calendário. (Exemplo: desenquadramento como isento do IRPF)",
+          "tipo": "N",
+          "tamanho": 1,
+          "decimais": null,
+          "valores_validos": [
+            "0",
+            "1",
+            "2"
+          ],
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 7,
+          "campo": "SIT_ESPECIAL",
+          "descricao": "Indicador de Situação Especial e Outros Eventos: 0 – Normal; 1 – Falecimento; 2 - Espólio; 3 - Saída definitiva do País.",
+          "tipo": "N",
+          "tamanho": 1,
+          "decimais": null,
+          "valores_validos": [
+            "0",
+            "1",
+            "2",
+            "3"
+          ],
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 8,
+          "campo": "DT_SIT_ESP",
+          "descricao": "Data da Situação Especial: em caso de falecimento da pessoa física, a data de falecimento.",
+          "tipo": "N",
+          "tamanho": 8,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Não"
+        },
+        {
+          "n": 9,
+          "campo": "DT_INI",
+          "descricao": "Data do Início do Período: Data inicial das informações contidas no arquivo. Este campo deve ser preenchido com a data inicial do período correspondente ao ano-calendário a que se referir o LCDPR.",
+          "tipo": "N",
+          "tamanho": 8,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 10,
+          "campo": "DT_FIN",
+          "descricao": "Data final do período",
+          "tipo": "N",
+          "tamanho": 8,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        }
+      ]
+    },
+    {
+      "registro": "0010",
+      "nivel": 2,
+      "nome": "Parâmetro de tributação",
+      "obrigatoriedade": "O",
+      "ocorrencia": "[1;1]",
+      "campos": [
+        {
+          "n": 1,
+          "campo": "REG",
+          "descricao": "Texto fixo contendo a identificação do registro (0010).",
+          "tipo": "C",
+          "tamanho": 4,
+          "decimais": null,
+          "valores_validos": [
+            "0010"
+          ],
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 2,
+          "campo": "FORMA_APUR",
+          "descricao": "Forma de Apuração: 1 – Livro Caixa. 2 – Apuração do lucro pelo disposto no art. 5º da Lei nº 8.023, de 1990 A forma de apuração do resultado da atividade rural adotada, indica que a pessoa física apurou o resultado com base no: 1) Livro Caixa: Apurou o resultado da atividade rural com base nos lançamentos registrados no Livro Caixa do Produtor Rural. 2) Apurou o resultado da atividade rural com base na faculdade disposta no art. 5º da Lei nº 8.023, de 1990 (20% da Receita Bruta)",
+          "tipo": "N",
+          "tamanho": 1,
+          "decimais": null,
+          "valores_validos": [
+            "1",
+            "2"
+          ],
+          "obrigatorio": "Sim"
+        }
+      ]
+    },
+    {
+      "registro": "0030",
+      "nivel": 2,
+      "nome": "Dados cadastrais",
+      "obrigatoriedade": "O",
+      "ocorrencia": "[1;1]",
+      "campos": [
+        {
+          "n": 1,
+          "campo": "REG",
+          "descricao": "Texto fixo contendo a identificação do registro (0030).",
+          "tipo": "C",
+          "tamanho": 4,
+          "decimais": null,
+          "valores_validos": [
+            "0030"
+          ],
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 2,
+          "campo": "ENDERECO",
+          "descricao": "Endereço da pessoa física.",
+          "tipo": "C",
+          "tamanho": 150,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 3,
+          "campo": "NUM",
+          "descricao": "Número",
+          "tipo": "C",
+          "tamanho": 6,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 4,
+          "campo": "COMPL",
+          "descricao": "Complemento",
+          "tipo": "C",
+          "tamanho": 50,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Não"
+        },
+        {
+          "n": 5,
+          "campo": "BAIRRO",
+          "descricao": "Bairro/Distrito",
+          "tipo": "C",
+          "tamanho": 50,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 6,
+          "campo": "UF",
+          "descricao": "Unidade Federativa (http://sped.rfb.gov.br/pasta/show/1932)",
+          "tipo": "C",
+          "tamanho": 2,
+          "decimais": null,
+          "valores_validos": "Tabela",
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 7,
+          "campo": "COD_MUN",
+          "descricao": "Código do Município (http://sped.rfb.gov.br/pasta/show/1932)",
+          "tipo": "C",
+          "tamanho": 7,
+          "decimais": null,
+          "valores_validos": "Tabela",
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 8,
+          "campo": "CEP",
+          "descricao": "Código de Endereçamento Postal (CEP)",
+          "tipo": "C",
+          "tamanho": 8,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 9,
+          "campo": "NUM_TEL",
+          "descricao": "DDD + Número do Telefone",
+          "tipo": "N",
+          "tamanho": 15,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Não"
+        },
+        {
+          "n": 10,
+          "campo": "EMAIL",
+          "descricao": "Correio eletrônico",
+          "tipo": "C",
+          "tamanho": 115,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        }
+      ]
+    },
+    {
+      "registro": "0040",
+      "nivel": 2,
+      "nome": "Cadastro dos imóveis rurais",
+      "obrigatoriedade": "O",
+      "ocorrencia": "[1;N]",
+      "campos": [
+        {
+          "n": 1,
+          "campo": "REG",
+          "descricao": "Texto fixo contendo a identificação do registro (0040).",
+          "tipo": "C",
+          "tamanho": 4,
+          "decimais": null,
+          "valores_validos": [
+            "0040"
+          ],
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 2,
+          "campo": "COD_IMOVEL",
+          "descricao": "Código do Imóvel no LCDPR",
+          "tipo": "N",
+          "tamanho": 3,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 3,
+          "campo": "PAIS",
+          "descricao": "País Brasil = BR",
+          "tipo": "C",
+          "tamanho": 2,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 4,
+          "campo": "MOEDA",
+          "descricao": "Moeda = BRL",
+          "tipo": "C",
+          "tamanho": 3,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 5,
+          "campo": "CAD_ITR",
+          "descricao": "CAFIR (Com DV)",
+          "tipo": "N",
+          "tamanho": 8,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Sim se imóvel localizado em zona rural e 0040.PAIS = BR"
+        },
+        {
+          "n": 6,
+          "campo": "CAEPF",
+          "descricao": "Cadastro de Atividade Econômica da pessoa Física (IN RFB nº 1.828/2018)",
+          "tipo": "N",
+          "tamanho": 14,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Sim se 0040.PAIS = BR e a exploração for individual e para o primeiro titular ou representante do coletivo de produtores nos demais tipos de exploração. Não para os demais."
+        },
+        {
+          "n": 7,
+          "campo": "INSCR_ESTADUAL",
+          "descricao": "Inscrição Estadual",
+          "tipo": "N",
+          "tamanho": 14,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Não"
+        },
+        {
+          "n": 8,
+          "campo": "NOME_IMOVEL",
+          "descricao": "Nome do Imóvel",
+          "tipo": "C",
+          "tamanho": 50,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 9,
+          "campo": "ENDERECO",
+          "descricao": "Endereço do Imóvel",
+          "tipo": "C",
+          "tamanho": 150,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 10,
+          "campo": "NUM",
+          "descricao": "Número",
+          "tipo": "C",
+          "tamanho": 6,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Não"
+        },
+        {
+          "n": 11,
+          "campo": "COMPL",
+          "descricao": "Complemento",
+          "tipo": "C",
+          "tamanho": 50,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Não"
+        },
+        {
+          "n": 12,
+          "campo": "BAIRRO",
+          "descricao": "Bairro/Distrito",
+          "tipo": "C",
+          "tamanho": 50,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 13,
+          "campo": "UF",
+          "descricao": "Unidade Federativa (http://sped.rfb.gov.br/pasta/show/1932)",
+          "tipo": "C",
+          "tamanho": 2,
+          "decimais": null,
+          "valores_validos": "Tabela",
+          "obrigatorio": "Sim se 0040.PAIS = BR"
+        },
+        {
+          "n": 14,
+          "campo": "COD_MUN",
+          "descricao": "Código do Municipio (http://sped.rfb.gov.br/pasta/show/1932)",
+          "tipo": "C",
+          "tamanho": 7,
+          "decimais": null,
+          "valores_validos": "Tabela",
+          "obrigatorio": "Sim se 0040.PAIS = BR"
+        },
+        {
+          "n": 15,
+          "campo": "CEP",
+          "descricao": "Código de Endereçamento Postal (CEP)",
+          "tipo": "C",
+          "tamanho": 8,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Sim se 0040.PAIS = BR"
+        },
+        {
+          "n": 16,
+          "campo": "TIPO_EXPLORACAO",
+          "descricao": "Tipo de Exploração do Imóvel: 1 - Exploração individual 2 - Condomínio 3 - Imóvel arrendado 4 - Parceria 5 – Comodato 6- Outros",
+          "tipo": "N",
+          "tamanho": 1,
+          "decimais": null,
+          "valores_validos": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6"
+          ],
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 17,
+          "campo": "PARTICIPACAO",
+          "descricao": "Participação em percentual na exploração do Imóvel",
+          "tipo": "N",
+          "tamanho": 5,
+          "decimais": 2,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        }
+      ]
+    },
+    {
+      "registro": "0045",
+      "nivel": 3,
+      "nome": "Cadastro de terceiros",
+      "obrigatoriedade": "F Se 0040.PARTICIPACAO for menor que 100% ou 0040.TIPO_EXPLORACAO diferente de \"1\", então: O",
+      "ocorrencia": "[1;N]",
+      "campos": [
+        {
+          "n": 1,
+          "campo": "REG",
+          "descricao": "Texto fixo contendo a identificação do registro (0045).",
+          "tipo": "C",
+          "tamanho": 4,
+          "decimais": null,
+          "valores_validos": [
+            "0045"
+          ],
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 2,
+          "campo": "COD_IMOVEL",
+          "descricao": "Código do Imóvel do registro 0040",
+          "tipo": "N",
+          "tamanho": 3,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 3,
+          "campo": "TIPO_CONTRAPARTE",
+          "descricao": "Tipo de terceiro relacionado à exploração do imóvel: 1 – Condômino 2 – Arrendador 3 – Parceiro 4 – Comodante 5 – Outros",
+          "tipo": "N",
+          "tamanho": 1,
+          "decimais": null,
+          "valores_validos": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+          ],
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 4,
+          "campo": "ID_CONTRAPARTE",
+          "descricao": "Número do CPF/CNPJ do terceiro que explora em conjunto ou do arrendador/comodante do imóvel rural",
+          "tipo": "N",
+          "tamanho": [
+            11,
+            14
+          ],
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 5,
+          "campo": "NOME_CONTRAPARTE",
+          "descricao": "Nome do terceiro que explora em conjunto ou do arrendador/comodante do imóvel rural",
+          "tipo": "C",
+          "tamanho": 50,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 6,
+          "campo": "PERC_CONTRAPARTE",
+          "descricao": "Percentual de participação na exploração do imóvel",
+          "tipo": "N",
+          "tamanho": 5,
+          "decimais": 2,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        }
+      ]
+    },
+    {
+      "registro": "0050",
+      "nivel": 2,
+      "nome": "Cadastro das contas bancárias do produtor rural",
+      "obrigatoriedade": "O",
+      "ocorrencia": "[1;N]",
+      "campos": [
+        {
+          "n": 1,
+          "campo": "REG",
+          "descricao": "Texto fixo contendo a identificação do registro (0050).",
+          "tipo": "C",
+          "tamanho": 4,
+          "decimais": null,
+          "valores_validos": [
+            "0050"
+          ],
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 2,
+          "campo": "COD_CONTA",
+          "descricao": "Código da conta bancária",
+          "tipo": "N",
+          "tamanho": 3,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 3,
+          "campo": "PAIS_CTA",
+          "descricao": "Código de identificação do país em que a conta bancária é mantida (http://sped.rfb.gov.br/pasta/show/1932)",
+          "tipo": "C",
+          "tamanho": 3,
+          "decimais": null,
+          "valores_validos": "Tabela",
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 4,
+          "campo": "BANCO",
+          "descricao": "Número código de compensação da instituição financeira participante do STR publicado pelo Banco Central do Brasil",
+          "tipo": "N",
+          "tamanho": 3,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Sim se 0050.PAIS_CTA = BR"
+        },
+        {
+          "n": 5,
+          "campo": "NOME_BANCO",
+          "descricao": "Nome da Instituição Financeira",
+          "tipo": "C",
+          "tamanho": 30,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 6,
+          "campo": "AGENCIA",
+          "descricao": "Número da Agência Bancária (Sem dígito verificador)",
+          "tipo": "N",
+          "tamanho": 4,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 7,
+          "campo": "NUM_CONTA",
+          "descricao": "Número da Conta com dígito verificador",
+          "tipo": "N",
+          "tamanho": 16,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        }
+      ]
+    },
+    {
+      "registro": "Q100",
+      "nivel": 2,
+      "nome": "Demonstrativo do Resultado da Atividade Rural",
+      "obrigatoriedade": "O",
+      "ocorrencia": "[1;N]",
+      "campos": [
+        {
+          "n": 1,
+          "campo": "REG",
+          "descricao": "Texto fixo contendo a identificação do registro (Q100).",
+          "tipo": "C",
+          "tamanho": 4,
+          "decimais": null,
+          "valores_validos": [
+            "Q100"
+          ],
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 2,
+          "campo": "DATA",
+          "descricao": "Data da entrada ou da saída dos recursos.",
+          "tipo": "N",
+          "tamanho": 8,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 3,
+          "campo": "COD_IMOVEL",
+          "descricao": "Código do Imóvel (do Bloco 0040).",
+          "tipo": "N",
+          "tamanho": 3,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 4,
+          "campo": "COD_CONTA",
+          "descricao": "Código da conta bancária em que transitou o recurso (do Registro 0050) Caso tenha sido pago em espécie, registrar como \"000\" e, caso utilize numerário em trânsito, utilizar o código \"999\"",
+          "tipo": "N",
+          "tamanho": 3,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 5,
+          "campo": "NUM_DOC",
+          "descricao": "Número do documento.",
+          "tipo": "C",
+          "tamanho": null,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Não"
+        },
+        {
+          "n": 6,
+          "campo": "TIPO_DOC",
+          "descricao": "Tipo de Documento: 1 - Nota Fiscal 2 - Fatura 3 - Recibo 4 - Contrato 5 - Folha de Pagamento 6 - Outros",
+          "tipo": "N",
+          "tamanho": 1,
+          "decimais": null,
+          "valores_validos": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6"
+          ],
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 7,
+          "campo": "HIST",
+          "descricao": "Histórico",
+          "tipo": "C",
+          "tamanho": null,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 8,
+          "campo": "ID_PARTIC",
+          "descricao": "CPF/CNPJ do participante",
+          "tipo": "N",
+          "tamanho": [
+            11,
+            14
+          ],
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 9,
+          "campo": "TIPO_LANC",
+          "descricao": "Tipo de Lançamento; 1 - Receita da Atividade Rural 2 - Despesas de custeio e investimentos 3 - Receita de produtos entregues no ano referente a adiantamento de recursos financeiros",
+          "tipo": "N",
+          "tamanho": 1,
+          "decimais": null,
+          "valores_validos": [
+            "1",
+            "2",
+            "3"
+          ],
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 10,
+          "campo": "VL_ENTRADA",
+          "descricao": "Valor de entrada dos recursos.",
+          "tipo": "N",
+          "tamanho": 19,
+          "decimais": 2,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 11,
+          "campo": "VL_SAIDA",
+          "descricao": "Valor de saída dos recursos.",
+          "tipo": "N",
+          "tamanho": 19,
+          "decimais": 2,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 12,
+          "campo": "SLD_FIN",
+          "descricao": "Saldo após o registro",
+          "tipo": "N",
+          "tamanho": 19,
+          "decimais": 2,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 13,
+          "campo": "NAT_SLD_FIN",
+          "descricao": "Natureza do Saldo (Negativo ou Positivo)",
+          "tipo": "C",
+          "tamanho": 1,
+          "decimais": null,
+          "valores_validos": [
+            "N",
+            "P"
+          ],
+          "obrigatorio": "Sim"
+        }
+      ]
+    },
+    {
+      "registro": "Q200",
+      "nivel": 2,
+      "nome": "Resumo Mensal do Demonstrativo do Resultado da Atividade Rural",
+      "obrigatoriedade": "O",
+      "ocorrencia": "[1;N]",
+      "campos": [
+        {
+          "n": 1,
+          "campo": "REG",
+          "descricao": "Texto fixo contendo a identificação do registro (Q200).",
+          "tipo": "C",
+          "tamanho": 4,
+          "decimais": null,
+          "valores_validos": [
+            "Q200"
+          ],
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 2,
+          "campo": "MES",
+          "descricao": "Mês/ano da entrada ou da saída dos recursos.",
+          "tipo": "N",
+          "tamanho": 6,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 3,
+          "campo": "VL_ENTRADA",
+          "descricao": "Valor total de entrada dos recursos no mês.",
+          "tipo": "N",
+          "tamanho": 19,
+          "decimais": 2,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 4,
+          "campo": "VL_SAIDA",
+          "descricao": "Valor total de saída dos recursos no mês.",
+          "tipo": "N",
+          "tamanho": 19,
+          "decimais": 2,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 5,
+          "campo": "SLD_FIN",
+          "descricao": "Saldo Final até o mês",
+          "tipo": "N",
+          "tamanho": 19,
+          "decimais": 2,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 6,
+          "campo": "NAT_SLD_FIN",
+          "descricao": "Natureza do Saldo Final (Negativo ou Positivo)",
+          "tipo": "C",
+          "tamanho": 1,
+          "decimais": null,
+          "valores_validos": [
+            "N",
+            "P"
+          ],
+          "obrigatorio": "Sim"
+        }
+      ]
+    },
+    {
+      "registro": "9999",
+      "nivel": 1,
+      "nome": "Identificação do Contador e Encerramento do Arquivo Digital",
+      "obrigatoriedade": "O",
+      "ocorrencia": "[1;1]",
+      "campos": [
+        {
+          "n": 1,
+          "campo": "REG",
+          "descricao": "Texto fixo contendo a identificação do registro (9999).",
+          "tipo": "C",
+          "tamanho": 4,
+          "decimais": null,
+          "valores_validos": [
+            "9999"
+          ],
+          "obrigatorio": "Sim"
+        },
+        {
+          "n": 2,
+          "campo": "IDENT_NOM",
+          "descricao": "Nome do Contador",
+          "tipo": "C",
+          "tamanho": null,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Não"
+        },
+        {
+          "n": 3,
+          "campo": "IDENT_CPF_CNPJ",
+          "descricao": "CPF/CNPJ do Contador",
+          "tipo": "N",
+          "tamanho": [
+            11,
+            14
+          ],
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Não"
+        },
+        {
+          "n": 4,
+          "campo": "IND_CRC",
+          "descricao": "Número de inscrição do Contador no Conselho Regional de Contabilidade.",
+          "tipo": "C",
+          "tamanho": null,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Não"
+        },
+        {
+          "n": 5,
+          "campo": "EMAIL",
+          "descricao": "E-mail do Contador",
+          "tipo": "C",
+          "tamanho": 115,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Não"
+        },
+        {
+          "n": 6,
+          "campo": "FONE",
+          "descricao": "DDD e telefone do Contador",
+          "tipo": "N",
+          "tamanho": 15,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Não"
+        },
+        {
+          "n": 7,
+          "campo": "QTD_LIN",
+          "descricao": "Quantidade total de registros do arquivo.",
+          "tipo": "N",
+          "tamanho": 30,
+          "decimais": null,
+          "valores_validos": null,
+          "obrigatorio": "Sim"
+        }
+      ]
+    }
+  ]
+}
