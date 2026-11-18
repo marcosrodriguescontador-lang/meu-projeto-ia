@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fale com o RI | APSA RI</title>
+<meta name="description" content="Canal de atendimento a acionistas e investidores da APSA.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='10' fill='%230f4d34'/%3E%3Ccircle cx='24' cy='22' r='9' fill='%23fff'/%3E%3C/svg%3E">
+<script src="assets/js/data.js" defer></script>
+<script src="assets/js/main.js" defer></script>
+</head>
+<body data-pagina="contato">
+<a class="skip" href="#conteudo">Pular para o conteúdo</a>
+<header id="site-header"></header>
+
+<main id="conteudo">
+  <section class="page-hero">
+    <div class="container">
+      <div class="breadcrumb"><a href="index.html">Início</a> / Fale com o RI</div>
+      <h1>Fale com o RI</h1>
+      <p>Canal de atendimento a acionistas e demais interessados.</p>
+    </div>
+  </section>
+
+  <section class="bloco">
+    <div class="container grid grid-2">
+      <div class="card">
+        <h3>Envie sua mensagem</h3>
+        <form class="contato mt-1" id="form-contato">
+          <label>Nome completo<input name="nome" required autocomplete="name"></label>
+          <label>E-mail<input name="email" type="email" required autocomplete="email"></label>
+          <label>Perfil
+            <select name="perfil">
+              <option>Acionista</option>
+              <option>Credor / fornecedor</option>
+              <option>Cliente / locatário</option>
+              <option>Imprensa</option>
+              <option>Outro</option>
+            </select>
+          </label>
+          <label>Assunto<input name="assunto" required></label>
+          <label>Mensagem<textarea name="mensagem" rows="5" required></textarea></label>
+          <button class="btn btn-solid" type="submit">Enviar mensagem</button>
+          <p class="form-msg" aria-live="polite"></p>
+        </form>
+      </div>
+      <div>
+        <div class="card">
+          <h3>Atendimento ao acionista</h3>
+          <dl class="cadastro mt-1">
+            <dt>Companhia</dt><dd>Algodoeira Palmeirense S.A. – APSA</dd>
+            <dt>CNPJ</dt><dd class="num">12.505.731/0001-78</dd>
+            <dt>Sede</dt><dd data-contato="endereco">Rancharia – SP</dd>
+            <dt>E-mail</dt><dd data-contato="email"></dd>
+            <dt>Telefone</dt><dd data-contato="telefone"></dd>
+          </dl>
+        </div>
+        <div class="card mt-2">
+          <h3>Perguntas frequentes</h3>
+          <p><strong>Haverá distribuição de dividendos referente a 2025?</strong><br>Não. O lucro líquido de 2025 foi integralmente absorvido pelos prejuízos acumulados (Lei nº 6.404/1976, art. 189).</p>
+          <p><strong>Os números de 2024 foram reapresentados?</strong><br>Não. Os ajustes de exercícios anteriores foram registrados em 2025 em prejuízos acumulados; se reapresentado, o PL de 31/12/2024 seria de R$ (44.095.229,81) — <a href="notas-explicativas.html#nota-3">nota 3</a>.</p>
+          <p><strong>A Companhia possui ações negociadas em bolsa?</strong><br>Não. A APSA é companhia de capital fechado.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer id="site-footer"></footer>
+</body>
+</html>
